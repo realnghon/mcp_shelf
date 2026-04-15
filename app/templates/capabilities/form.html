@@ -16,19 +16,25 @@
             </div>
             <div class="form-group">
                 <label>Name</label>
-                <input type="text" name="name" value="{{ capability.name if capability else '' }}" required>
+                <input type="text" name="name" value="{{ capability.name if capability else '' }}"
+                       placeholder="e.g. My Web Fetch" required>
             </div>
             <div class="form-group">
                 <label>Slug</label>
-                <input type="text" name="slug" value="{{ capability.slug if capability else '' }}" pattern="[a-z0-9][a-z0-9\-]*" required {% if capability %}readonly{% endif %}>
+                <input type="text" name="slug" value="{{ capability.slug if capability else '' }}"
+                       pattern="[a-z0-9][a-z0-9\-]*"
+                       placeholder="e.g. my-web-fetch (lowercase, dashes only)"
+                       required {% if capability %}readonly{% endif %}>
             </div>
             <div class="form-group">
                 <label>Category</label>
-                <input type="text" name="category" value="{{ capability.category if capability and capability.category else '' }}">
+                <input type="text" name="category" value="{{ capability.category if capability and capability.category else '' }}"
+                       placeholder="e.g. network, search, file">
             </div>
             <div class="form-group">
                 <label>Version</label>
-                <input type="text" name="version" value="{{ capability.version if capability else '0.1.0' }}">
+                <input type="text" name="version" value="{{ capability.version if capability else '0.1.0' }}"
+                       placeholder="e.g. 0.1.0">
             </div>
             <div class="form-group">
                 <label>Visibility</label>
@@ -40,15 +46,18 @@
         </div>
         <div class="form-group">
             <label>Description</label>
-            <textarea name="description" rows="3">{{ capability.description if capability and capability.description else '' }}</textarea>
+            <textarea name="description" rows="3"
+                      placeholder="Describe what this capability does...">{{ capability.description if capability and capability.description else '' }}</textarea>
         </div>
         <div class="form-group">
             <label>Connection Config (JSON)</label>
-            <textarea name="connection_config" rows="5">{{ capability.connection_config | tojson(indent=2) if capability else '{}' }}</textarea>
+            <textarea name="connection_config" rows="5"
+                      placeholder='{"transport": "sse", "endpoint_url": "https://example.com/sse"}'>{{ capability.connection_config | tojson(indent=2) if capability else '{}' }}</textarea>
         </div>
         <div class="form-group">
             <label>Config Schema (JSON)</label>
-            <textarea name="config_schema" rows="5">{{ capability.config_schema | tojson(indent=2) if capability else '{}' }}</textarea>
+            <textarea name="config_schema" rows="5"
+                      placeholder='{"type": "object", "properties": {"api_key": {"type": "string"}}}'>{{ capability.config_schema | tojson(indent=2) if capability else '{}' }}</textarea>
         </div>
         <div class="flex flex-gap mt-2">
             <button type="submit" class="btn btn-primary">Save</button>

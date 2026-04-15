@@ -8,10 +8,10 @@
     <div class="card">
         <div class="flex flex-between mb-2">
             <h3>LLM Providers</h3>
-            <button class="btn btn-primary btn-sm" onclick="showAddForm()">Add Provider</button>
+            <button class="btn btn-primary btn-sm" onclick="showAddForm()">+ Add Provider</button>
         </div>
         <p class="text-dim text-sm mb-2">
-            Configure LLM API keys and endpoints here. These take priority over .env file settings.
+            Configure LLM API keys and endpoints. These take priority over .env file settings.
         </p>
 
         <div id="llm-list">
@@ -21,11 +21,11 @@
                     <div>
                         <strong>{{ config.name }}</strong>
                         <span class="badge badge-{{ config.provider }}">{{ config.provider }}</span>
-                        {% if config.is_default %}<span class="badge" style="background: var(--primary); color: white;">default</span>{% endif %}
+                        {% if config.is_default %}<span class="badge" style="background: var(--primary-bg); color: var(--primary);">default</span>{% endif %}
                     </div>
                     <div class="flex flex-gap">
-                        <button class="btn btn-outline btn-sm" onclick="editConfig('{{ config.id }}')">Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteConfig('{{ config.id }}')">Delete</button>
+                        <button class="btn btn-ghost btn-sm" onclick="editConfig('{{ config.id }}')">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--error)" onclick="deleteConfig('{{ config.id }}')">Delete</button>
                     </div>
                 </div>
                 <div class="text-sm text-dim mt-1">
@@ -56,22 +56,22 @@
             </div>
             <div class="form-group">
                 <label>Name</label>
-                <input type="text" id="cfg-name" placeholder="e.g. My OpenAI" required>
+                <input type="text" id="cfg-name" placeholder="e.g. My OpenAI, Claude Pro" required>
             </div>
             <div class="form-group">
                 <label>API Key</label>
-                <input type="password" id="cfg-api-key" placeholder="sk-...">
+                <input type="password" id="cfg-api-key" placeholder="sk-... or your API key">
             </div>
             <div class="form-group">
                 <label>Base URL (optional)</label>
-                <input type="text" id="cfg-base-url" placeholder="https://api.openai.com">
+                <input type="text" id="cfg-base-url" placeholder="e.g. https://api.openai.com/v1 or your proxy URL">
             </div>
             <div class="form-group">
                 <label>Default Model</label>
-                <input type="text" id="cfg-default-model" placeholder="gpt-4.1">
+                <input type="text" id="cfg-default-model" placeholder="e.g. gpt-4.1, claude-sonnet-4-20250514">
             </div>
             <div class="form-group">
-                <label><input type="checkbox" id="cfg-is-default"> Set as default provider</label>
+                <label><input type="checkbox" id="cfg-is-default" style="width:auto;"> Set as default provider</label>
             </div>
             <div class="flex flex-gap mt-2">
                 <button type="submit" class="btn btn-primary">Save</button>
@@ -90,8 +90,8 @@
         Quickly backup all data (database + configuration) before upgrading, or restore from a backup.
     </p>
     <div class="flex flex-gap">
-        <button class="btn btn-primary" onclick="backupData()">Backup All Data</button>
-        <label class="btn btn-outline" style="cursor: pointer;">
+        <button class="btn btn-primary btn-sm" onclick="backupData()">Backup All Data</button>
+        <label class="btn btn-outline btn-sm" style="cursor: pointer;">
             Restore from Backup
             <input type="file" accept=".zip" onchange="restoreData(event)" style="display: none;">
         </label>

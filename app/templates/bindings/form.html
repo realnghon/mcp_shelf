@@ -8,28 +8,49 @@
         <form id="bind-form" onsubmit="saveBinding(event)">
             <div class="form-group">
                 <label>Name</label>
-                <input type="text" name="name" value="{{ binding.name if binding else '' }}" required>
+                <input type="text" name="name" value="{{ binding.name if binding else '' }}"
+                       placeholder="e.g. Docs Assistant" required>
             </div>
             <div class="form-group">
                 <label>Description</label>
-                <textarea name="description" rows="2">{{ binding.description if binding and binding.description else '' }}</textarea>
+                <textarea name="description" rows="2"
+                          placeholder="Describe what this binding does...">{{ binding.description if binding and binding.description else '' }}</textarea>
+            </div>
+
+            <!-- Guided Model Selection -->
+            <div class="form-group">
+                <label>Provider</label>
+                <select id="provider-select" onchange="onProviderChange()" style="margin-bottom:0.5rem;">
+                    <option value="openai" {% if binding and binding.model_key and binding.model_key.startswith('openai') %}selected{% endif %}>OpenAI / Compatible</option>
+                    <option value="anthropic" {% if binding and binding.model_key and binding.model_key.startswith('anthropic') %}selected{% endif %}>Anthropic</option>
+                </select>
             </div>
             <div class="form-group">
-                <label>Model Key</label>
-                <input type="text" name="model_key" value="{{ binding.model_key if binding else 'openai:gpt-4.1' }}" required>
+                <label>Model</label>
+                <select id="model-select" onchange="onModelChange()" style="margin-bottom:0.5rem;">
+                </select>
+                <input type="text" id="model-custom" placeholder="e.g. gpt-4.1, claude-sonnet-4-20250514, or any model name"
+                       style="display:none; margin-top:0.25rem;">
+                <input type="hidden" name="model_key" id="model-key-input"
+                       value="{{ binding.model_key if binding else 'openai:gpt-4.1' }}" required>
+                <p class="text-xs text-dim" style="margin-top:0.25rem;">Format: <code id="model-key-preview">openai:gpt-4.1</code></p>
             </div>
+
             <div class="form-group">
                 <label>System Prompt</label>
-                <textarea name="system_prompt" rows="4">{{ binding.system_prompt if binding and binding.system_prompt else '' }}</textarea>
+                <textarea name="system_prompt" rows="4"
+                          placeholder="e.g. You are a helpful assistant that answers questions using available tools.">{{ binding.system_prompt if binding and binding.system_prompt else '' }}</textarea>
             </div>
             <div class="grid grid-2">
                 <div class="form-group">
                     <label>Max Steps</label>
-                    <input type="number" name="max_steps" value="{{ binding.max_steps if binding else 8 }}" min="1" max="50">
+                    <input type="number" name="max_steps" value="{{ binding.max_steps if binding else 8 }}"
+                           min="1" max="50" placeholder="e.g. 8">
                 </div>
                 <div class="form-group">
                     <label>Temperature</label>
-                    <input type="number" name="temperature" value="{{ binding.temperature if binding and binding.temperature != None else '' }}" step="0.1" min="0" max="2">
+                    <input type="number" name="temperature" value="{{ binding.temperature if binding and binding.temperature != None else '' }}"
+                           step="0.1" min="0" max="2" placeholder="0.0 - 2.0, e.g. 0.7">
                 </div>
             </div>
             <div class="flex flex-gap mt-2">
@@ -55,20 +76,103 @@
         </div>
         {% endfor %}
         {% if not binding.capabilities %}
-        <p class="text-dim text-sm">No capabilities attached</p>
+        <p class="text-dim text-sm">No capabilities attached. <a href="/capabilities" style="color:var(--primary)">Browse plugins</a></p>
         {% endif %}
     </div>
     {% endif %}
 </div>
 
 <script>
+const OPENAI_MODELS = [
+    {id: 'gpt-4.1', name: 'GPT-4.1 (recommended)'},
+    {id: 'gpt-4o', name: 'GPT-4o'},
+    {id: 'gpt-4o-mini', name: 'GPT-4o Mini (fast/cheap)'},
+    {id: 'o3', name: 'o3 (reasoning)'},
+    {id: 'o4-mini', name: 'o4 Mini (reasoning)'},
+    {id: '__custom__', name: 'Custom model...'},
+];
+const ANTHROPIC_MODELS = [
+    {id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4 (recommended)'},
+    {id: 'claude-opus-4-20250514', name: 'Claude Opus 4 (powerful)'},
+    {id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5 (fast)'},
+    {id: '__custom__', name: 'Custom model...'},
+];
+
+const currentModelKey = '{{ binding.model_key if binding else "openai:gpt-4.1" }}';
+
+function onProviderChange() {
+    const provider = document.getElementById('provider-select').value;
+    const modelSelect = document.getElementById('model-select');
+    const models = provider === 'anthropic' ? ANTHROPIC_MODELS : OPENAI_MODELS;
+    modelSelect.innerHTML = '';
+    for (const m of models) {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        modelSelect.appendChild(opt);
+    }
+    modelSelect.value = models[0].id;
+    document.getElementById('model-custom').style.display = 'none';
+    onModelChange();
+}
+
+function onModelChange() {
+    const provider = document.getElementById('provider-select').value;
+    const modelSelect = document.getElementById('model-select');
+    const customInput = document.getElementById('model-custom');
+    const selected = modelSelect.value;
+
+    if (selected === '__custom__') {
+        customInput.style.display = 'block';
+        customInput.focus();
+        updateModelKey(provider, customInput.value || 'custom-model');
+    } else {
+        customInput.style.display = 'none';
+        updateModelKey(provider, selected);
+    }
+}
+
+function updateModelKey(provider, model) {
+    const key = `${provider}:${model}`;
+    document.getElementById('model-key-input').value = key;
+    document.getElementById('model-key-preview').textContent = key;
+}
+
+// Custom model input listener
+document.getElementById('model-custom').addEventListener('input', function() {
+    const provider = document.getElementById('provider-select').value;
+    updateModelKey(provider, this.value || 'custom-model');
+});
+
+// Initialize from existing model_key
+(function() {
+    const parts = currentModelKey.split(':', 2);
+    const provider = parts[0] || 'openai';
+    const model = parts[1] || 'gpt-4.1';
+
+    document.getElementById('provider-select').value = provider;
+    onProviderChange();
+
+    // Try to select the matching model
+    const modelSelect = document.getElementById('model-select');
+    const options = Array.from(modelSelect.options).map(o => o.value);
+    if (options.includes(model)) {
+        modelSelect.value = model;
+    } else {
+        modelSelect.value = '__custom__';
+        document.getElementById('model-custom').style.display = 'block';
+        document.getElementById('model-custom').value = model;
+    }
+    onModelChange();
+})();
+
 async function saveBinding(e) {
     e.preventDefault();
     const form = e.target;
     const data = {
         name: form.name.value,
         description: form.description.value || null,
-        model_key: form.model_key.value,
+        model_key: document.getElementById('model-key-input').value,
         system_prompt: form.system_prompt.value || null,
         max_steps: parseInt(form.max_steps.value) || 8,
         temperature: form.temperature.value ? parseFloat(form.temperature.value) : null,

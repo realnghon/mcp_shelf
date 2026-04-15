@@ -1,39 +1,97 @@
 {% extends "base.html" %}
-{% block title %}Capabilities - MCP Shelf{% endblock %}
+{% block title %}MCP & Skills - MCP Shelf{% endblock %}
 {% block content %}
 <div class="flex flex-between mb-2">
-    <h1>Capabilities</h1>
-    <div class="flex flex-gap">
-        <a href="/capabilities/new" class="btn btn-primary">New Capability</a>
+    <div>
+        <h1>MCP & Skills</h1>
+        <p class="text-dim text-sm">Browse and manage your plugins, tools, and skills</p>
     </div>
+    <a href="/capabilities/new" class="btn btn-primary">+ Add New</a>
 </div>
 
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Kind</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Version</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for cap in capabilities %}
-            <tr>
-                <td><a href="/capabilities/{{ cap.id }}">{{ cap.name }}</a></td>
-                <td><span class="badge badge-{{ cap.kind }}">{{ cap.kind }}</span></td>
-                <td>{{ cap.category or '-' }}</td>
-                <td><span class="badge badge-{{ cap.status }}">{{ cap.status }}</span></td>
-                <td>{{ cap.version }}</td>
-                <td>
-                    <a href="/capabilities/{{ cap.id }}/edit" class="btn btn-outline btn-sm">Edit</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- Filter tabs -->
+<div class="flex flex-gap mb-2" style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+    <button class="btn btn-ghost btn-sm filter-btn active" onclick="filterByKind('all')">All</button>
+    <button class="btn btn-ghost btn-sm filter-btn" onclick="filterByKind('mcp')">MCP</button>
+    <button class="btn btn-ghost btn-sm filter-btn" onclick="filterByKind('tool')">Tools</button>
+    <button class="btn btn-ghost btn-sm filter-btn" onclick="filterByKind('skill')">Skills</button>
 </div>
+
+<!-- Shelf grid -->
+<div class="grid grid-3" id="capability-shelf">
+    {% for cap in capabilities %}
+    <div class="card shelf-item" data-kind="{{ cap.kind }}" style="display:flex;flex-direction:column;gap:0.5rem;">
+        <div class="flex flex-between">
+            <div class="flex flex-gap" style="align-items:center;">
+                <div class="plugin-icon {{ cap.kind }}" style="width:36px;height:36px;font-size:0.85rem;">
+                    {{ cap.kind[0] | upper }}
+                </div>
+                <div>
+                    <a href="/capabilities/{{ cap.id }}" style="font-weight:600;font-size:0.92rem;text-decoration:none;color:var(--text);">{{ cap.name }}</a>
+                    <div class="text-xs text-dim">{{ cap.category or 'uncategorized' }}</div>
+                </div>
+            </div>
+            <input type="checkbox" class="toggle"
+                   {% if cap.status == 'active' %}checked{% endif %}
+                   onchange="toggleCap('{{ cap.id }}', this.checked)"
+                   title="{% if cap.status == 'active' %}Deactivate{% else %}Activate{% endif %}">
+        </div>
+        <p class="text-sm text-dim" style="flex:1;">{{ cap.description or 'No description' }}</p>
+        <div class="flex flex-between" style="align-items:center;">
+            <div class="flex flex-gap">
+                <span class="badge badge-{{ cap.kind }}">{{ cap.kind }}</span>
+                <span class="badge badge-{{ cap.status }}">{{ cap.status }}</span>
+            </div>
+            <span class="text-xs text-dim">v{{ cap.version }}</span>
+        </div>
+    </div>
+    {% endfor %}
+    {% if not capabilities %}
+    <div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-dim);">
+        <p>No capabilities registered yet.</p>
+        <a href="/capabilities/new" class="btn btn-primary btn-sm mt-2">Add your first one</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.filter-btn.active {
+    background: var(--primary-bg);
+    color: var(--primary);
+}
+.shelf-item:hover {
+    border-color: var(--border-hover);
+}
+.plugin-icon {
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+.plugin-icon.mcp { background: #3b82f620; color: #60a5fa; }
+.plugin-icon.tool { background: #22c55e20; color: #4ade80; }
+.plugin-icon.skill { background: #a855f720; color: #c084fc; }
+</style>
+
+<script>
+function filterByKind(kind) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.shelf-item').forEach(item => {
+        item.style.display = (kind === 'all' || item.dataset.kind === kind) ? '' : 'none';
+    });
+}
+
+async function toggleCap(capId, enabled) {
+    const url = enabled
+        ? `/api/capabilities/${capId}/activate`
+        : `/api/capabilities/${capId}/deactivate`;
+    try {
+        await fetch(url, { method: 'POST' });
+    } catch (e) {
+        event.target.checked = !enabled;
+    }
+}
+</script>
 {% endblock %}

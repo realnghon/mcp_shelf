@@ -20,7 +20,7 @@ async def call_model_node(state: AgentState) -> dict:
         lc_messages = _to_lc_messages(messages)
 
         # Get model
-        model = get_chat_model(state.get("binding_id"))
+        model = await get_chat_model(state.get("binding_id"))
 
         # Bind tools if available
         if tools:

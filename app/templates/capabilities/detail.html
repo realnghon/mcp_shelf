@@ -2,21 +2,42 @@
 {% block title %}{{ capability.name }} - MCP Shelf{% endblock %}
 {% block content %}
 <div class="flex flex-between mb-2">
-    <div>
-        <h1>{{ capability.name }}</h1>
-        <span class="badge badge-{{ capability.kind }}">{{ capability.kind }}</span>
-        <span class="badge badge-{{ capability.status }}">{{ capability.status }}</span>
+    <div class="flex flex-gap" style="align-items:center;">
+        <div class="plugin-icon {{ capability.kind }}" style="width:40px;height:40px;font-size:1rem;">
+            {{ capability.kind[0] | upper }}
+        </div>
+        <div>
+            <h1 style="margin-bottom:0;">{{ capability.name }}</h1>
+            <div class="flex flex-gap mt-1">
+                <span class="badge badge-{{ capability.kind }}">{{ capability.kind }}</span>
+                <span class="badge badge-{{ capability.status }}">{{ capability.status }}</span>
+                <span class="text-xs text-dim">v{{ capability.version }}</span>
+            </div>
+        </div>
     </div>
     <div class="flex flex-gap">
-        <a href="/capabilities/{{ capability.id }}/edit" class="btn btn-outline">Edit</a>
+        <a href="/capabilities/{{ capability.id }}/edit" class="btn btn-outline btn-sm">Edit</a>
         {% if capability.status == 'active' %}
-        <button class="btn btn-outline" hx-post="/api/capabilities/{{ capability.id }}/deactivate" hx-swap="none">Deactivate</button>
+        <button class="btn btn-outline btn-sm" hx-post="/api/capabilities/{{ capability.id }}/deactivate" hx-swap="none">Deactivate</button>
         {% else %}
-        <button class="btn btn-primary" hx-post="/api/capabilities/{{ capability.id }}/activate" hx-swap="none">Activate</button>
+        <button class="btn btn-success btn-sm" hx-post="/api/capabilities/{{ capability.id }}/activate" hx-swap="none">Activate</button>
         {% endif %}
-        <button class="btn btn-outline" hx-post="/api/capabilities/{{ capability.id }}/healthcheck" hx-target="#health-result">Health Check</button>
+        <button class="btn btn-outline btn-sm" hx-post="/api/capabilities/{{ capability.id }}/healthcheck" hx-target="#health-result">Health Check</button>
     </div>
 </div>
+
+<style>
+.plugin-icon {
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+.plugin-icon.mcp { background: #3b82f620; color: #60a5fa; }
+.plugin-icon.tool { background: #22c55e20; color: #4ade80; }
+.plugin-icon.skill { background: #a855f720; color: #c084fc; }
+</style>
 
 <div class="grid grid-2">
     <div class="card">
@@ -27,7 +48,7 @@
             <tr><th>Version</th><td>{{ capability.version }}</td></tr>
             <tr><th>Visibility</th><td>{{ capability.visibility }}</td></tr>
             <tr><th>Description</th><td>{{ capability.description or '-' }}</td></tr>
-            <tr><th>Tags</th><td>{{ capability.tags | join(', ') }}</td></tr>
+            <tr><th>Tags</th><td>{{ capability.tags | join(', ') if capability.tags else '-' }}</td></tr>
         </table>
     </div>
 

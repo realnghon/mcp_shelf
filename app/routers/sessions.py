@@ -42,6 +42,12 @@ async def delete_session(session_id: str):
         raise HTTPException(404, "Session not found")
 
 
+@router.delete("", status_code=204)
+async def delete_all_sessions():
+    """Delete all sessions."""
+    await svc.delete_all_sessions()
+
+
 @router.get("/{session_id}/messages")
 async def list_messages(session_id: str):
     return await svc.list_messages(session_id)

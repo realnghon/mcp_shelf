@@ -2,38 +2,30 @@
 {% block title %}Bindings - MCP Shelf{% endblock %}
 {% block content %}
 <div class="flex flex-between mb-2">
-    <h1>Bindings</h1>
-    <a href="/playground" class="btn btn-primary">Create in Playground</a>
+    <div>
+        <h1>Bindings</h1>
+        <p class="text-dim text-sm">Configure agent bindings with model, prompt, and capabilities</p>
+    </div>
 </div>
 
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Model</th>
-                <th>Capabilities</th>
-                <th>Max Steps</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for bind in bindings %}
-            <tr>
-                <td><a href="/bindings/{{ bind.id }}">{{ bind.name }}</a></td>
-                <td>{{ bind.model_key }}</td>
-                <td>{{ bind.capabilities | length }}</td>
-                <td>{{ bind.max_steps }}</td>
-                <td>
-                    <a href="/bindings/{{ bind.id }}" class="btn btn-outline btn-sm">Edit</a>
-                    <button class="btn btn-outline btn-sm"
-                        hx-post="/api/bindings/{{ bind.id }}/clone"
-                        hx-confirm="Clone this binding?"
-                        hx-swap="none">Clone</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="grid grid-3">
+    {% for bind in bindings %}
+    <a href="/bindings/{{ bind.id }}" class="card" style="text-decoration:none;color:var(--text);display:flex;flex-direction:column;gap:0.5rem;">
+        <div class="flex flex-between">
+            <strong>{{ bind.name }}</strong>
+            <span class="badge" style="background:var(--primary-bg);color:var(--primary);font-size:0.65rem;">{{ bind.model_key }}</span>
+        </div>
+        <p class="text-sm text-dim" style="flex:1;">{{ bind.description or 'No description' }}</p>
+        <div class="flex flex-between" style="align-items:center;">
+            <span class="text-xs text-dim">{{ bind.capabilities | length }} capabilities</span>
+            <span class="text-xs text-dim">max {{ bind.max_steps }} steps</span>
+        </div>
+    </a>
+    {% endfor %}
+    {% if not bindings %}
+    <div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-dim);">
+        <p>No bindings configured yet.</p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

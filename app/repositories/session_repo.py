@@ -118,6 +118,15 @@ class SessionRepo:
         await db.commit()
         return cursor.rowcount > 0
 
+    async def delete_all(self) -> int:
+        """Delete all sessions and their messages. Returns count of sessions deleted."""
+        db = await get_db()
+        # Delete messages first (foreign key)
+        await db.execute("DELETE FROM runtime_messages")
+        cursor = await db.execute("DELETE FROM runtime_sessions")
+        await db.commit()
+        return cursor.rowcount
+
 
 class MessageRepo:
     async def list_by_session(self, session_id: str) -> list[dict]:
@@ -147,8 +156,8 @@ class MessageRepo:
             "content": data.get("content"),
             "tool_name": data.get("tool_name"),
             "tool_call_id": data.get("tool_call_id"),
-            "tool_args": data.get("tool_args"),
-            "tool_result": data.get("tool_result"),
+            "tool_args": json.dumps(data["tool_args"]) if isinstance(data.get("tool_args"), (dict, list)) else data.get("tool_args"),
+            "tool_result": json.dumps(data["tool_result"]) if isinstance(data.get("tool_result"), (dict, list)) else data.get("tool_result"),
             "message_index": next_idx,
             "created_at": now,
         }

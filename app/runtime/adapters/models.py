@@ -13,7 +13,8 @@ _model_cache: dict = {}
 async def get_chat_model(binding_id: str | None = None) -> object:
     """Get a chat model instance, resolving config from DB -> .env."""
     repo = LLMConfigRepo()
-    model_key = "openai:gpt-4.1"  # default
+    # Default model from .env settings
+    model_key = f"openai:{settings.openai_model}"
     temperature = 0.7
 
     if binding_id:
@@ -43,6 +44,13 @@ async def get_chat_model(binding_id: str | None = None) -> object:
             api_key = settings.openai_api_key or None
         elif provider == "anthropic":
             api_key = settings.anthropic_api_key or None
+
+    # Fallback base_url to .env
+    if not base_url:
+        if provider == "openai":
+            base_url = settings.openai_base_url or None
+        elif provider == "anthropic":
+            base_url = settings.anthropic_base_url or None
 
     cache_key = f"{provider}:{model_name}:{temperature}:{base_url or 'default'}"
     if cache_key in _model_cache:

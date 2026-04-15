@@ -8,6 +8,8 @@ from app.services.binding_service import BindingService
 from app.services.session_service import SessionService
 from app.services.llm_config_service import LLMConfigService
 
+from app.core.config import settings
+
 router = APIRouter()
 templates = get_templates()
 reg_svc = RegistryService()
@@ -18,17 +20,15 @@ llm_svc = LLMConfigService()
 
 @router.get("/")
 async def index(request: Request):
-    caps, cap_total = await reg_svc.list_capabilities(page_size=5)
-    binds, bind_total = await bind_svc.list_bindings(page_size=5)
-    sessions, sess_total = await sess_svc.list_sessions(page_size=5)
+    bindings, _ = await bind_svc.list_bindings(page_size=100)
+    sessions, _ = await sess_svc.list_sessions(page_size=50)
+    capabilities, _ = await reg_svc.list_capabilities(page_size=100)
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "recent_capabilities": caps,
-        "recent_bindings": binds,
-        "recent_sessions": sessions,
-        "cap_total": cap_total,
-        "bind_total": bind_total,
-        "sess_total": sess_total,
+        "bindings": bindings,
+        "sessions": sessions,
+        "capabilities": capabilities,
+        "default_model": f"openai:{settings.openai_model}",
     })
 
 
@@ -39,19 +39,6 @@ async def capabilities_page(request: Request):
         "request": request,
         "capabilities": items,
         "total": total,
-    })
-
-
-@router.get("/capabilities/{cap_id}")
-async def capability_detail_page(request: Request, cap_id: str):
-    cap = await reg_svc.get_capability(cap_id)
-    if not cap:
-        return templates.TemplateResponse("index.html", {"request": request, "error": "Not found"})
-    versions = await reg_svc.list_versions(cap_id)
-    return templates.TemplateResponse("capabilities/detail.html", {
-        "request": request,
-        "capability": cap,
-        "versions": versions,
     })
 
 
@@ -69,6 +56,19 @@ async def edit_capability_page(request: Request, cap_id: str):
     return templates.TemplateResponse("capabilities/form.html", {
         "request": request,
         "capability": cap,
+    })
+
+
+@router.get("/capabilities/{cap_id}")
+async def capability_detail_page(request: Request, cap_id: str):
+    cap = await reg_svc.get_capability(cap_id)
+    if not cap:
+        return templates.TemplateResponse("index.html", {"request": request, "error": "Not found"})
+    versions = await reg_svc.list_versions(cap_id)
+    return templates.TemplateResponse("capabilities/detail.html", {
+        "request": request,
+        "capability": cap,
+        "versions": versions,
     })
 
 
@@ -95,13 +95,9 @@ async def binding_detail_page(request: Request, binding_id: str):
 
 @router.get("/playground")
 async def playground_page(request: Request):
-    bindings, _ = await bind_svc.list_bindings(page_size=100)
-    sessions, _ = await sess_svc.list_sessions(page_size=50)
-    return templates.TemplateResponse("sessions/playground.html", {
-        "request": request,
-        "bindings": bindings,
-        "sessions": sessions,
-    })
+    """Redirect to home page which now has the chat interface."""
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url="/")
 
 
 @router.get("/sessions/{session_id}/trace")

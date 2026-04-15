@@ -10,7 +10,11 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = True
     openai_api_key: str = ""
+    openai_base_url: str = ""
+    openai_model: str = "gpt-4.1"
     anthropic_api_key: str = ""
+    anthropic_base_url: str = ""
+    anthropic_model: str = "claude-sonnet-4-20250514"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

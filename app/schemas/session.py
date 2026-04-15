@@ -36,8 +36,8 @@ class MessageCreate(BaseModel):
     content: str | None = None
     tool_name: str | None = None
     tool_call_id: str | None = None
-    tool_args: str | None = None
-    tool_result: str | None = None
+    tool_args: Any = None
+    tool_result: Any = None
 
 
 # --- Message Response ---

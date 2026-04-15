@@ -54,8 +54,14 @@ class LLMConfigService:
         return None
 
     async def resolve_base_url(self, provider: str) -> str | None:
-        """Resolve base URL for a provider."""
+        """Resolve base URL: DB first, then .env fallback."""
         config = await self.repo.get_by_provider(provider)
         if config and config.get("base_url"):
             return config["base_url"]
+
+        # Fallback to .env
+        if provider == "openai":
+            return settings.openai_base_url or None
+        elif provider == "anthropic":
+            return settings.anthropic_base_url or None
         return None

@@ -1,0 +1,21 @@
+{
+  "kind": "mcp",
+  "name": "ModelScope Fetch",
+  "slug": "modelscope-fetch",
+  "description": "Fetch content from URLs via ModelScope MCP SSE endpoint",
+  "category": "network",
+  "tags": ["mcp", "fetch", "modelscope", "sse"],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "config_schema": {},
+  "connection_config": {
+    "transport": "sse",
+    "endpoint_url": "https://mcp.api-inference.modelscope.net/e79896459bbe41/sse"
+  },
+  "metadata": {
+    "icon": "globe",
+    "homepage": "https://modelscope.cn",
+    "readme": "A sample MCP SSE tool from ModelScope. Use it to fetch web content through their hosted MCP endpoint."
+  }
+}

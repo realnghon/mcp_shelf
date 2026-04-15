@@ -1,0 +1,31 @@
+{
+  "kind": "tool",
+  "name": "Calculator",
+  "slug": "calculator",
+  "description": "A simple arithmetic calculator. Supports basic math operations: add, subtract, multiply, divide.",
+  "category": "utility",
+  "tags": ["calculator", "math", "utility", "example"],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "precision": {
+        "type": "integer",
+        "title": "Decimal precision",
+        "default": 2,
+        "description": "Number of decimal places for results"
+      }
+    }
+  },
+  "connection_config": {
+    "transport": "local",
+    "operations": ["add", "subtract", "multiply", "divide"]
+  },
+  "metadata": {
+    "icon": "calculator",
+    "homepage": "",
+    "readme": "Built-in calculator tool. Evaluates arithmetic expressions like '2 + 3 * 4'. Safe to use, no external dependencies."
+  }
+}

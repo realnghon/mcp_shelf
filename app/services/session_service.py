@@ -35,6 +35,10 @@ class SessionService:
             await self.audit.log("delete", "session", session_id, actor_id)
         return ok
 
+    async def delete_all_sessions(self, actor_id: str | None = None) -> int:
+        """Delete all sessions and their messages. Returns count deleted."""
+        return await self.session_repo.delete_all()
+
     # --- Messages ---
 
     async def list_messages(self, session_id: str) -> list[dict]:
