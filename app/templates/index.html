@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}MCP Shelf - Home{% endblock %}
+{% block content %}
+<div class="flex flex-between mb-2">
+    <h1>MCP Shelf</h1>
+    <a href="/playground" class="btn btn-primary">Open Playground</a>
+</div>
+
+<p class="text-dim mb-2">MCP / Tool / Skill Registry + Binding Config + Playground</p>
+
+<div class="grid grid-3 mt-2">
+    <div class="card">
+        <h3>Capabilities</h3>
+        <p class="text-dim text-sm">{{ cap_total }} registered</p>
+        {% for cap in recent_capabilities %}
+        <div class="mt-1">
+            <a href="/capabilities/{{ cap.id }}">{{ cap.name }}</a>
+            <span class="badge badge-{{ cap.kind }}">{{ cap.kind }}</span>
+        </div>
+        {% endfor %}
+        <a href="/capabilities" class="btn btn-outline btn-sm mt-1">View All</a>
+    </div>
+
+    <div class="card">
+        <h3>Bindings</h3>
+        <p class="text-dim text-sm">{{ bind_total }} configured</p>
+        {% for bind in recent_bindings %}
+        <div class="mt-1">
+            <a href="/bindings/{{ bind.id }}">{{ bind.name }}</a>
+            <span class="text-dim text-sm">{{ bind.model_key }}</span>
+        </div>
+        {% endfor %}
+        <a href="/bindings" class="btn btn-outline btn-sm mt-1">View All</a>
+    </div>
+
+    <div class="card">
+        <h3>Sessions</h3>
+        <p class="text-dim text-sm">{{ sess_total }} sessions</p>
+        {% for sess in recent_sessions %}
+        <div class="mt-1">
+            <a href="/sessions/{{ sess.id }}/trace">{{ sess.title or sess.id[:8] }}</a>
+            <span class="badge badge-{{ sess.session_status }}">{{ sess.session_status }}</span>
+        </div>
+        {% endfor %}
+        <a href="/playground" class="btn btn-outline btn-sm mt-1">Playground</a>
+    </div>
+</div>
+{% endblock %}

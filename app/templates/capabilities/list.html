@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Capabilities - MCP Shelf{% endblock %}
+{% block content %}
+<div class="flex flex-between mb-2">
+    <h1>Capabilities</h1>
+    <div class="flex flex-gap">
+        <a href="/capabilities/new" class="btn btn-primary">New Capability</a>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Kind</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Version</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cap in capabilities %}
+            <tr>
+                <td><a href="/capabilities/{{ cap.id }}">{{ cap.name }}</a></td>
+                <td><span class="badge badge-{{ cap.kind }}">{{ cap.kind }}</span></td>
+                <td>{{ cap.category or '-' }}</td>
+                <td><span class="badge badge-{{ cap.status }}">{{ cap.status }}</span></td>
+                <td>{{ cap.version }}</td>
+                <td>
+                    <a href="/capabilities/{{ cap.id }}/edit" class="btn btn-outline btn-sm">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+"""Page routes - serve Jinja2 rendered HTML pages."""
+
+from fastapi import APIRouter, Request
+
+from app.core.templates import get_templates
+from app.services.registry_service import RegistryService
+from app.services.binding_service import BindingService
+from app.services.session_service import SessionService
+from app.services.llm_config_service import LLMConfigService
+
+router = APIRouter()
+templates = get_templates()
+reg_svc = RegistryService()
+bind_svc = BindingService()
+sess_svc = SessionService()
+llm_svc = LLMConfigService()
+
+
+@router.get("/")
+async def index(request: Request):
+    caps, cap_total = await reg_svc.list_capabilities(page_size=5)
+    binds, bind_total = await bind_svc.list_bindings(page_size=5)
+    sessions, sess_total = await sess_svc.list_sessions(page_size=5)
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "recent_capabilities": caps,
+        "recent_bindings": binds,
+        "recent_sessions": sessions,
+        "cap_total": cap_total,
+        "bind_total": bind_total,
+        "sess_total": sess_total,
+    })
+
+
+@router.get("/capabilities")
+async def capabilities_page(request: Request):
+    items, total = await reg_svc.list_capabilities(page_size=100)
+    return templates.TemplateResponse("capabilities/list.html", {
+        "request": request,
+        "capabilities": items,
+        "total": total,
+    })
+
+
+@router.get("/capabilities/{cap_id}")
+async def capability_detail_page(request: Request, cap_id: str):
+    cap = await reg_svc.get_capability(cap_id)
+    if not cap:
+        return templates.TemplateResponse("index.html", {"request": request, "error": "Not found"})
+    versions = await reg_svc.list_versions(cap_id)
+    return templates.TemplateResponse("capabilities/detail.html", {
+        "request": request,
+        "capability": cap,
+        "versions": versions,
+    })
+
+
+@router.get("/capabilities/new")
+async def new_capability_page(request: Request):
+    return templates.TemplateResponse("capabilities/form.html", {
+        "request": request,
+        "capability": None,
+    })
+
+
+@router.get("/capabilities/{cap_id}/edit")
+async def edit_capability_page(request: Request, cap_id: str):
+    cap = await reg_svc.get_capability(cap_id)
+    return templates.TemplateResponse("capabilities/form.html", {
+        "request": request,
+        "capability": cap,
+    })
+
+
+@router.get("/bindings")
+async def bindings_page(request: Request):
+    items, total = await bind_svc.list_bindings(page_size=100)
+    return templates.TemplateResponse("bindings/list.html", {
+        "request": request,
+        "bindings": items,
+        "total": total,
+    })
+
+
+@router.get("/bindings/{binding_id}")
+async def binding_detail_page(request: Request, binding_id: str):
+    binding = await bind_svc.get_binding(binding_id)
+    if not binding:
+        return templates.TemplateResponse("index.html", {"request": request, "error": "Not found"})
+    return templates.TemplateResponse("bindings/form.html", {
+        "request": request,
+        "binding": binding,
+    })
+
+
+@router.get("/playground")
+async def playground_page(request: Request):
+    bindings, _ = await bind_svc.list_bindings(page_size=100)
+    sessions, _ = await sess_svc.list_sessions(page_size=50)
+    return templates.TemplateResponse("sessions/playground.html", {
+        "request": request,
+        "bindings": bindings,
+        "sessions": sessions,
+    })
+
+
+@router.get("/sessions/{session_id}/trace")
+async def trace_page(request: Request, session_id: str):
+    session = await sess_svc.get_session(session_id)
+    messages = await sess_svc.list_messages(session_id) if session else []
+    return templates.TemplateResponse("sessions/trace.html", {
+        "request": request,
+        "session": session,
+        "messages": messages,
+    })
+
+
+@router.get("/settings")
+async def settings_page(request: Request):
+    configs = await llm_svc.list_configs()
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "llm_configs": configs,
+    })

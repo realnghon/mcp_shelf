@@ -1,0 +1,23 @@
+{
+  "name": "Docs Basic",
+  "description": "Basic doc test setup",
+  "model_key": "openai:gpt-4.1",
+  "system_prompt": "You are a careful internal test agent. Use the available tools to answer questions.",
+  "max_steps": 6,
+  "temperature": 0.2,
+  "allow_shell": false,
+  "capabilities": [
+    {
+      "slug": "internal-search",
+      "is_enabled": true,
+      "runtime_overrides": {}
+    },
+    {
+      "slug": "http-fetch",
+      "is_enabled": true,
+      "runtime_overrides": {
+        "timeout_s": 15
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "kind": "tool",
+  "name": "HTTP Fetch",
+  "slug": "http-fetch",
+  "description": "Fetch content from URLs",
+  "category": "network",
+  "tags": ["http", "fetch", "web"],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "config_schema": {},
+  "connection_config": {
+    "transport": "local",
+    "timeout_s": 15
+  },
+  "metadata": {
+    "icon": "globe",
+    "readme": "Fetch web content"
+  }
+}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{% if capability %}Edit{% else %}New{% endif %} Capability - MCP Shelf{% endblock %}
+{% block content %}
+<h1 class="mb-2">{% if capability %}Edit {{ capability.name }}{% else %}New Capability{% endif %}</h1>
+
+<div class="card">
+    <form id="cap-form" onsubmit="saveCapability(event)">
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label>Kind</label>
+                <select name="kind" required>
+                    <option value="mcp" {% if capability and capability.kind == 'mcp' %}selected{% endif %}>MCP</option>
+                    <option value="tool" {% if capability and capability.kind == 'tool' %}selected{% endif %}>Tool</option>
+                    <option value="skill" {% if capability and capability.kind == 'skill' %}selected{% endif %}>Skill</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" name="name" value="{{ capability.name if capability else '' }}" required>
+            </div>
+            <div class="form-group">
+                <label>Slug</label>
+                <input type="text" name="slug" value="{{ capability.slug if capability else '' }}" pattern="[a-z0-9][a-z0-9\-]*" required {% if capability %}readonly{% endif %}>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <input type="text" name="category" value="{{ capability.category if capability and capability.category else '' }}">
+            </div>
+            <div class="form-group">
+                <label>Version</label>
+                <input type="text" name="version" value="{{ capability.version if capability else '0.1.0' }}">
+            </div>
+            <div class="form-group">
+                <label>Visibility</label>
+                <select name="visibility">
+                    <option value="public" {% if capability and capability.visibility == 'public' %}selected{% endif %}>Public</option>
+                    <option value="private" {% if capability and capability.visibility == 'private' %}selected{% endif %}>Private</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" rows="3">{{ capability.description if capability and capability.description else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>Connection Config (JSON)</label>
+            <textarea name="connection_config" rows="5">{{ capability.connection_config | tojson(indent=2) if capability else '{}' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>Config Schema (JSON)</label>
+            <textarea name="config_schema" rows="5">{{ capability.config_schema | tojson(indent=2) if capability else '{}' }}</textarea>
+        </div>
+        <div class="flex flex-gap mt-2">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="/capabilities" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+async function saveCapability(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        kind: form.kind.value,
+        name: form.name.value,
+        slug: form.slug.value,
+        category: form.category.value || null,
+        version: form.version.value,
+        visibility: form.visibility.value,
+        description: form.description.value || null,
+        connection_config: JSON.parse(form.connection_config.value || '{}'),
+        config_schema: JSON.parse(form.config_schema.value || '{}'),
+    };
+    const capId = "{{ capability.id if capability else '' }}";
+    const url = capId ? `/api/capabilities/${capId}` : '/api/capabilities';
+    const method = capId ? 'PUT' : 'POST';
+    const resp = await fetch(url, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+    });
+    if (resp.ok) {
+        window.location.href = '/capabilities';
+    } else {
+        const err = await resp.json();
+        alert('Error: ' + (err.detail || JSON.stringify(err)));
+    }
+}
+</script>
+{% endblock %}

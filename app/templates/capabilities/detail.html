@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ capability.name }} - MCP Shelf{% endblock %}
+{% block content %}
+<div class="flex flex-between mb-2">
+    <div>
+        <h1>{{ capability.name }}</h1>
+        <span class="badge badge-{{ capability.kind }}">{{ capability.kind }}</span>
+        <span class="badge badge-{{ capability.status }}">{{ capability.status }}</span>
+    </div>
+    <div class="flex flex-gap">
+        <a href="/capabilities/{{ capability.id }}/edit" class="btn btn-outline">Edit</a>
+        {% if capability.status == 'active' %}
+        <button class="btn btn-outline" hx-post="/api/capabilities/{{ capability.id }}/deactivate" hx-swap="none">Deactivate</button>
+        {% else %}
+        <button class="btn btn-primary" hx-post="/api/capabilities/{{ capability.id }}/activate" hx-swap="none">Activate</button>
+        {% endif %}
+        <button class="btn btn-outline" hx-post="/api/capabilities/{{ capability.id }}/healthcheck" hx-target="#health-result">Health Check</button>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h3>Basic Info</h3>
+        <table>
+            <tr><th>Slug</th><td>{{ capability.slug }}</td></tr>
+            <tr><th>Category</th><td>{{ capability.category or '-' }}</td></tr>
+            <tr><th>Version</th><td>{{ capability.version }}</td></tr>
+            <tr><th>Visibility</th><td>{{ capability.visibility }}</td></tr>
+            <tr><th>Description</th><td>{{ capability.description or '-' }}</td></tr>
+            <tr><th>Tags</th><td>{{ capability.tags | join(', ') }}</td></tr>
+        </table>
+    </div>
+
+    <div>
+        <div class="card">
+            <h3>Connection Config</h3>
+            <pre style="background: var(--surface2); padding: 1rem; border-radius: var(--radius); overflow-x: auto; font-size: 0.8rem;">{{ capability.connection_config | tojson(indent=2) }}</pre>
+        </div>
+
+        <div class="card" id="health-result">
+            <h3>Health Check</h3>
+            <p class="text-dim text-sm">Click "Health Check" to test connectivity</p>
+        </div>
+    </div>
+</div>
+
+{% if versions %}
+<div class="card mt-2">
+    <h3>Version History</h3>
+    <table>
+        <thead><tr><th>Version</th><th>Changelog</th><th>Created</th></tr></thead>
+        <tbody>
+        {% for v in versions %}
+            <tr><td>{{ v.version }}</td><td>{{ v.changelog or '-' }}</td><td>{{ v.created_at }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

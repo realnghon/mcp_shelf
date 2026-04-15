@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{% if binding %}Edit{% else %}New{% endif %} Binding - MCP Shelf{% endblock %}
+{% block content %}
+<h1 class="mb-2">{% if binding %}Edit {{ binding.name }}{% else %}New Binding{% endif %}</h1>
+
+<div class="grid grid-2">
+    <div class="card">
+        <form id="bind-form" onsubmit="saveBinding(event)">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" name="name" value="{{ binding.name if binding else '' }}" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" rows="2">{{ binding.description if binding and binding.description else '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>Model Key</label>
+                <input type="text" name="model_key" value="{{ binding.model_key if binding else 'openai:gpt-4.1' }}" required>
+            </div>
+            <div class="form-group">
+                <label>System Prompt</label>
+                <textarea name="system_prompt" rows="4">{{ binding.system_prompt if binding and binding.system_prompt else '' }}</textarea>
+            </div>
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label>Max Steps</label>
+                    <input type="number" name="max_steps" value="{{ binding.max_steps if binding else 8 }}" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label>Temperature</label>
+                    <input type="number" name="temperature" value="{{ binding.temperature if binding and binding.temperature != None else '' }}" step="0.1" min="0" max="2">
+                </div>
+            </div>
+            <div class="flex flex-gap mt-2">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="/bindings" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    {% if binding %}
+    <div class="card">
+        <h3>Attached Capabilities</h3>
+        {% for cap in binding.capabilities %}
+        <div class="flex flex-between mt-1" style="padding: 0.5rem; background: var(--surface2); border-radius: var(--radius);">
+            <div>
+                <span>{{ cap.capability_name or cap.capability_id[:8] }}</span>
+                <span class="badge badge-{{ cap.capability_kind }}">{{ cap.capability_kind }}</span>
+            </div>
+            <button class="btn btn-danger btn-sm"
+                hx-delete="/api/bindings/{{ binding.id }}/capabilities/{{ cap.capability_id }}"
+                hx-swap="none"
+                hx-on::after-request="location.reload()">Remove</button>
+        </div>
+        {% endfor %}
+        {% if not binding.capabilities %}
+        <p class="text-dim text-sm">No capabilities attached</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function saveBinding(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        name: form.name.value,
+        description: form.description.value || null,
+        model_key: form.model_key.value,
+        system_prompt: form.system_prompt.value || null,
+        max_steps: parseInt(form.max_steps.value) || 8,
+        temperature: form.temperature.value ? parseFloat(form.temperature.value) : null,
+    };
+    const bindId = "{{ binding.id if binding else '' }}";
+    const url = bindId ? `/api/bindings/${bindId}` : '/api/bindings';
+    const method = bindId ? 'PUT' : 'POST';
+    const resp = await fetch(url, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+    });
+    if (resp.ok) {
+        window.location.href = '/bindings';
+    } else {
+        const err = await resp.json();
+        alert('Error: ' + (err.detail || JSON.stringify(err)));
+    }
+}
+</script>
+{% endblock %}

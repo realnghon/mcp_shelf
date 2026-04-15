@@ -1,0 +1,30 @@
+{
+  "kind": "mcp",
+  "name": "Internal Search",
+  "slug": "internal-search",
+  "description": "Search internal documents via MCP HTTP endpoint",
+  "category": "search",
+  "tags": ["docs", "search"],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "api_key": { "type": "string", "title": "API Key" }
+    },
+    "required": ["api_key"]
+  },
+  "connection_config": {
+    "transport": "http",
+    "endpoint_url": "http://localhost:8000/mcp",
+    "headers_template": {
+      "Authorization": "Bearer {{api_key}}"
+    }
+  },
+  "metadata": {
+    "icon": "database",
+    "homepage": "",
+    "readme": "Supports internal doc queries"
+  }
+}

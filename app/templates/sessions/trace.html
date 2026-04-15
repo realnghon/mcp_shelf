@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Trace - MCP Shelf{% endblock %}
+{% block content %}
+<div class="flex flex-between mb-2">
+    <h1>Session Trace</h1>
+    <a href="/playground" class="btn btn-outline">Back to Playground</a>
+</div>
+
+{% if session %}
+<div class="card mb-2">
+    <div class="grid grid-2">
+        <div>
+            <strong>Session:</strong> {{ session.id[:8] }}<br>
+            <strong>Status:</strong> <span class="badge badge-{{ session.session_status }}">{{ session.session_status }}</span><br>
+            <strong>Model:</strong> {{ session.model_key }}
+        </div>
+        <div>
+            <strong>Created:</strong> {{ session.created_at }}<br>
+            <strong>Messages:</strong> {{ messages | length }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h3>Message Trace</h3>
+    {% for msg in messages %}
+    <div style="padding: 0.75rem; margin: 0.5rem 0; background: var(--surface2); border-radius: var(--radius); border-left: 3px solid {% if msg.role == 'user' %}var(--primary){% elif msg.role == 'tool' %}var(--warning){% else %}var(--success){% endif %};">
+        <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.25rem;">
+            {{ msg.role }} {% if msg.tool_name %} / {{ msg.tool_name }}{% endif %}
+            <span style="float: right; color: var(--text-dim);">#{{ msg.message_index }}</span>
+        </div>
+        {% if msg.content %}
+        <div style="white-space: pre-wrap; word-break: break-word;">{{ msg.content }}</div>
+        {% endif %}
+        {% if msg.tool_args %}
+        <div style="margin-top: 0.25rem; font-family: monospace; font-size: 0.8rem; color: var(--text-dim);">Args: {{ msg.tool_args }}</div>
+        {% endif %}
+        {% if msg.tool_result %}
+        <div style="margin-top: 0.25rem; font-family: monospace; font-size: 0.8rem; color: var(--warning);">Result: {{ msg.tool_result }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% if not messages %}
+    <p class="text-dim">No messages in this session</p>
+    {% endif %}
+</div>
+{% endblock %}

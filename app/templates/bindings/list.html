@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Bindings - MCP Shelf{% endblock %}
+{% block content %}
+<div class="flex flex-between mb-2">
+    <h1>Bindings</h1>
+    <a href="/playground" class="btn btn-primary">Create in Playground</a>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Model</th>
+                <th>Capabilities</th>
+                <th>Max Steps</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bind in bindings %}
+            <tr>
+                <td><a href="/bindings/{{ bind.id }}">{{ bind.name }}</a></td>
+                <td>{{ bind.model_key }}</td>
+                <td>{{ bind.capabilities | length }}</td>
+                <td>{{ bind.max_steps }}</td>
+                <td>
+                    <a href="/bindings/{{ bind.id }}" class="btn btn-outline btn-sm">Edit</a>
+                    <button class="btn btn-outline btn-sm"
+                        hx-post="/api/bindings/{{ bind.id }}/clone"
+                        hx-confirm="Clone this binding?"
+                        hx-swap="none">Clone</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
