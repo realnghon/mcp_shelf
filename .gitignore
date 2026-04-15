@@ -26,6 +26,8 @@ env/
 
 # Database (user data, not versioned)
 data/app.db
+data/app.db-shm
+data/app.db-wal
 data/checkpoints.db
 data/exports/
 data/imports/
