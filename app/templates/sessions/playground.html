@@ -105,7 +105,7 @@
         <h3 style="margin: 1.5rem 0 0.5rem;">Sessions</h3>
         <div id="session-list">
             {% for sess in sessions %}
-            <div class="session-item" onclick="loadSession('{{ sess.id }}')" id="sess-{{ sess.id }}">
+            <div class="session-item" onclick="loadSession('{{ sess.id }}')" id="sess-{{ sess.id }}" data-session-id="{{ sess.id }}">
                 <span class="status-indicator status-{{ sess.session_status }}"></span>
                 {{ sess.title or sess.id[:8] }}
             </div>
@@ -137,6 +137,15 @@
 let currentSessionId = null;
 let eventSource = null;
 
+document.addEventListener('DOMContentLoaded', async () => {
+    const firstSession = document.querySelector('#session-list .session-item');
+    if (firstSession?.dataset?.sessionId) {
+        await loadSession(firstSession.dataset.sessionId);
+        return;
+    }
+    await createSession();
+});
+
 async function createSession() {
     const bindingId = document.getElementById('binding-select').value;
     const resp = await fetch('/api/sessions', {
@@ -158,6 +167,7 @@ async function createSession() {
         const item = document.createElement('div');
         item.className = 'session-item active';
         item.id = 'sess-' + session.id;
+        item.dataset.sessionId = session.id;
         item.onclick = () => loadSession(session.id);
         item.innerHTML = '<span class="status-indicator status-idle"></span>New Session';
         // Remove active from others

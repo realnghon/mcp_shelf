@@ -112,6 +112,7 @@ python scripts/seed_marketplace.py
 ### Registry — 能力管理
 
 - 注册 MCP Server / Tool / Skill 三种能力
+- 默认本地工具（`echo`、`calculator`）开箱可用
 - 分类、标签、搜索、筛选
 - 激活/停用
 - 健康检查（MCP 自动探测连通性）
@@ -132,6 +133,16 @@ python scripts/seed_marketplace.py
 - SSE 实时流式输出
 - 工具调用轨迹可视化（tool_call / tool_result）
 - 会话状态追踪（idle / running / error）
+
+### Skill / Plugin 模板
+
+- 仓库内置模板目录：`data/templates/plugins/compound-engineering/`
+- 示例 Skill capability：`ce-brainstorm-skill`（指向本地模板 `SKILL.md`）
+- 新增 Skill 的最小步骤：
+  1. 复制 `data/templates/plugins/compound-engineering/skills/ce-brainstorm/`
+  2. 修改 `SKILL.md`
+  3. 在 Capability 中配置 `kind=skill` 与 `connection_config.path`
+  4. 挂载到 Binding 即可被运行时发现
 
 ### Settings — LLM 配置
 

@@ -11,7 +11,7 @@
   "config_schema": {},
   "connection_config": {
     "transport": "sse",
-    "endpoint_url": "https://mcp.api-inference.modelscope.net/e79896459bbe41/sse"
+    "endpoint_url": "https://mcp.api-inference.modelscope.net/<your-endpoint-id>/sse"
   },
   "metadata": {
     "icon": "globe",

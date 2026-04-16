@@ -1,10 +1,10 @@
 import json
 from typing import Any
 
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from app.runtime.state import AgentState
 from app.runtime.adapters.models import get_chat_model
+from app.runtime.state import AgentState
 
 
 async def call_model_node(state: AgentState) -> dict:
@@ -20,13 +20,14 @@ async def call_model_node(state: AgentState) -> dict:
         lc_messages = _to_lc_messages(messages)
 
         # Get model
-        model = await get_chat_model(state.get("binding_id"))
+        model = await get_chat_model(
+            binding_id=state.get("binding_id"),
+            model_key_override=state.get("model_key"),
+        )
 
         # Bind tools if available
         if tools:
-            # Convert to LangChain tool format
-            lc_tools = _convert_tools(tools)
-            model = model.bind_tools(lc_tools) if lc_tools else model
+            model = model.bind_tools(tools)
 
         # Call model
         response = await model.ainvoke(lc_messages)
@@ -45,7 +46,7 @@ async def call_model_node(state: AgentState) -> dict:
         return {
             "messages": messages,
             "current_step": current_step,
-            "error": str(e),
+            "error": _normalize_model_error(str(e)),
         }
 
 
@@ -60,12 +61,16 @@ def _to_lc_messages(msg_dicts: list[dict]) -> list:
         elif role == "assistant":
             ai_msg = AIMessage(content=content)
             if m.get("tool_calls"):
-                ai_msg.tool_calls = m["tool_calls"]
+                ai_msg.tool_calls = _normalize_tool_calls(m["tool_calls"])
             result.append(ai_msg)
         elif role == "tool":
+            tool_content = m.get("content")
+            if tool_content is None:
+                tool_content = m.get("tool_result", "")
             result.append(ToolMessage(
-                content=m.get("tool_result", ""),
+                content=tool_content,
                 tool_call_id=m.get("tool_call_id", ""),
+                name=m.get("tool_name"),
             ))
         elif role == "system":
             result.append(SystemMessage(content=content))
@@ -77,7 +82,7 @@ def _lc_message_to_dict(msg) -> dict:
     if isinstance(msg, AIMessage):
         result = {"role": "assistant", "content": msg.content or ""}
         if msg.tool_calls:
-            result["tool_calls"] = msg.tool_calls
+            result["tool_calls"] = _normalize_tool_calls(msg.tool_calls)
         return result
     elif isinstance(msg, HumanMessage):
         return {"role": "user", "content": msg.content}
@@ -88,21 +93,41 @@ def _lc_message_to_dict(msg) -> dict:
     return {"role": "unknown", "content": str(msg)}
 
 
-def _convert_tools(tools: list) -> list:
-    """Convert tool dicts/objects to LangChain tool format."""
-    lc_tools = []
-    for t in tools:
-        if hasattr(t, "name"):
-            # Already a LangChain tool
-            lc_tools.append(t)
-        elif isinstance(t, dict):
-            # Raw tool definition - convert to structured tool
-            from langchain_core.tools import StructuredTool
-            lc_tools.append(StructuredTool(
-                name=t.get("name", "unknown"),
-                description=t.get("description", ""),
-                func=lambda **kwargs: kwargs,
-                coroutine=lambda **kwargs: kwargs,
-                args_schema=t.get("args_schema"),
-            ))
-    return lc_tools
+def _normalize_tool_calls(tool_calls: Any) -> list[dict[str, Any]]:
+    """Normalize tool call payload across providers and SDK shapes."""
+    if not isinstance(tool_calls, list):
+        return []
+
+    normalized: list[dict[str, Any]] = []
+    for call in tool_calls:
+        if not isinstance(call, dict):
+            continue
+        name = call.get("name") or call.get("function", {}).get("name")
+        raw_args = call.get("args")
+        if raw_args is None:
+            raw_args = call.get("function", {}).get("arguments", {})
+        if isinstance(raw_args, str):
+            try:
+                raw_args = json.loads(raw_args)
+            except json.JSONDecodeError:
+                raw_args = {"input": raw_args}
+        if not isinstance(raw_args, dict):
+            raw_args = {"input": raw_args}
+        normalized.append(
+            {
+                "id": call.get("id", ""),
+                "name": name or "",
+                "args": raw_args,
+            }
+        )
+    return normalized
+
+
+def _normalize_model_error(raw_error: str) -> str:
+    if "'str' object has no attribute 'model_dump'" in raw_error:
+        return (
+            "LLM endpoint returned a non-OpenAI response body. "
+            "For OpenAI-compatible providers, set base_url to include '/v1' "
+            "(example: https://your-endpoint/v1)."
+        )
+    return raw_error

@@ -7,8 +7,11 @@
         display: grid;
         grid-template-columns: 1fr 280px;
         height: 100%;
-        max-width: 1400px;
+        width: 100%;
+        max-width: 1420px;
         margin: 0 auto;
+        padding: 1rem clamp(1rem, 3vw, 3rem) 1.15rem;
+        gap: 0.8rem;
     }
     .chat-layout.panel-collapsed {
         grid-template-columns: 1fr 0px;
@@ -21,15 +24,25 @@
         height: 100%;
         overflow: hidden;
     }
+    .chat-stage {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+    }
 
     /* Top config bar */
     .chat-config {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        padding: 0.5rem 1.5rem;
+        padding: 0.65rem 1rem;
         border-bottom: 1px solid var(--border);
-        background: var(--surface);
+        background: color-mix(in srgb, var(--surface2) 45%, var(--surface));
         flex-shrink: 0;
     }
     .chat-config select {
@@ -74,6 +87,9 @@
         min-width: 1.8rem;
     }
     .chat-config .new-chat-btn {
+        margin-left: 0.35rem;
+    }
+    .chat-config .panel-toggle-inline {
         margin-left: auto;
     }
 
@@ -81,7 +97,7 @@
     .chat-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 1.5rem 10%;
+        padding: clamp(0.9rem, 1.8vh, 1.4rem) clamp(0.8rem, 4.5vw, 8rem);
     }
     .chat-empty {
         display: flex;
@@ -114,6 +130,9 @@
     .msg-row-assistant { justify-content: flex-start; }
     .msg-row-tool { justify-content: flex-start; }
     .msg-row-system { justify-content: center; }
+    .msg-row-tool {
+        padding-left: calc(28px + 0.5rem);
+    }
 
     .msg-avatar {
         width: 28px;
@@ -131,7 +150,7 @@
     .msg-avatar-assistant { background: var(--surface3); color: var(--text-dim); margin-right: 0.5rem; }
 
     .msg {
-        max-width: 70%;
+        max-width: min(72%, 760px);
         line-height: 1.6;
         font-size: 0.9rem;
     }
@@ -177,7 +196,168 @@
         white-space: pre-wrap;
         word-break: break-word;
     }
+    .md-content h1, .md-content h2, .md-content h3, .md-content h4 {
+        line-height: 1.35;
+        margin: 0.35rem 0 0.45rem;
+    }
+    .md-content h1 { font-size: 1.1rem; }
+    .md-content h2 { font-size: 1.02rem; }
+    .md-content h3 { font-size: 0.95rem; }
+    .md-content p { margin: 0.2rem 0 0.45rem; }
+    .md-content ul, .md-content ol { margin: 0.35rem 0 0.45rem 1.2rem; }
+    .md-content li { margin: 0.15rem 0; }
+    .md-content pre {
+        margin: 0.35rem 0;
+        padding: 0.6rem 0.7rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--surface3) 68%, transparent);
+        overflow-x: auto;
+        font-size: 0.78rem;
+    }
+    .md-content code {
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        background: color-mix(in srgb, var(--surface3) 60%, transparent);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.08rem 0.3rem;
+        font-size: 0.8em;
+    }
+    .md-content pre code {
+        background: transparent;
+        border: none;
+        padding: 0;
+    }
+    .md-content blockquote {
+        border-left: 3px solid var(--primary);
+        padding-left: 0.65rem;
+        margin: 0.45rem 0;
+        color: var(--text-dim);
+    }
+    .md-content a {
+        color: var(--primary-hover);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+    .thought-block {
+        margin-bottom: 0.55rem;
+        border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+        background: color-mix(in srgb, var(--warning-bg) 35%, var(--surface));
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .thought-block summary {
+        list-style: none;
+        cursor: pointer;
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        padding: 0.42rem 0.62rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        user-select: none;
+    }
+    .thought-block summary::-webkit-details-marker { display: none; }
+    .thought-caret {
+        transition: transform 0.2s ease;
+        font-size: 0.68rem;
+        color: var(--warning);
+    }
+    .thought-block[open] .thought-caret { transform: rotate(90deg); }
+    .thought-body {
+        padding: 0 0.62rem 0.58rem;
+        font-size: 0.82rem;
+        color: var(--text-dim);
+    }
+    .thought-body .md-content p:last-child { margin-bottom: 0; }
+    .tool-event {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        max-width: min(78%, 760px);
+        overflow: hidden;
+        font-size: 0.82rem;
+    }
+    .tool-event-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.45rem 0.68rem;
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--surface2) 65%, var(--surface));
+    }
+    .tool-event-name {
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        font-size: 0.78rem;
+    }
+    .tool-chip {
+        font-size: 0.66rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 0.15rem 0.4rem;
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+    }
+    .tool-chip.call {
+        border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
+        color: var(--primary-hover);
+        background: var(--primary-bg);
+    }
+    .tool-chip.result {
+        border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+        color: var(--success);
+        background: var(--success-bg);
+    }
+    .tool-event-body {
+        padding: 0.55rem 0.68rem 0.62rem;
+    }
+    .tool-event-body pre {
+        margin: 0.28rem 0 0;
+        padding: 0.58rem 0.64rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--surface3) 60%, transparent);
+        font-size: 0.76rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: 'SF Mono', 'Fira Code', monospace;
+    }
     .typing-indicator { color: var(--text-dim); }
+    .thinking-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: var(--text-dim);
+    }
+    .thinking-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--primary-hover);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-hover) 45%, transparent);
+        animation: thinkingPulse 1.2s infinite ease-out;
+    }
+    .thinking-label {
+        font-size: 0.88rem;
+        letter-spacing: 0.01em;
+    }
+    @keyframes thinkingPulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-hover) 45%, transparent);
+        }
+        70% {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary-hover) 0%, transparent);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-hover) 0%, transparent);
+        }
+    }
     .typing-dots::after {
         content: '';
         animation: dots 1.2s steps(4, end) infinite;
@@ -192,10 +372,10 @@
     /* Input bar */
     .chat-input {
         border-top: 1px solid var(--border);
-        padding: 0.75rem 10%;
+        padding: 0.8rem clamp(0.8rem, 4.5vw, 8rem);
         display: flex;
         gap: 0.5rem;
-        background: var(--surface);
+        background: color-mix(in srgb, var(--surface2) 35%, var(--surface));
         flex-shrink: 0;
     }
     .chat-input input {
@@ -212,13 +392,15 @@
 
     /* ── Right panel (plugins) ── */
     .plugin-panel {
-        border-left: 1px solid var(--border);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
         background: var(--surface);
         display: flex;
         flex-direction: column;
         height: 100%;
         overflow: hidden;
         transition: width 0.2s;
+        box-shadow: var(--shadow);
     }
     .chat-layout.panel-collapsed .plugin-panel {
         width: 0;
@@ -228,7 +410,7 @@
     .panel-header {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         padding: 0.6rem 0.85rem;
         border-bottom: 1px solid var(--border);
         flex-shrink: 0;
@@ -285,9 +467,10 @@
         text-overflow: ellipsis;
     }
     .panel-footer {
-        padding: 0.5rem;
+        padding: 0.6rem;
         border-top: 1px solid var(--border);
         flex-shrink: 0;
+        background: color-mix(in srgb, var(--surface2) 45%, var(--surface));
     }
 
     /* Session list in sidebar */
@@ -332,32 +515,16 @@
     .status-dot.error { background: var(--error); }
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
-    /* Toggle panel button */
-    .toggle-panel-btn {
-        position: absolute;
-        right: 280px;
-        top: calc(var(--nav-height) + 8px);
-        z-index: 10;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 0.3rem;
-        cursor: pointer;
-        color: var(--text-dim);
-        display: flex;
-        align-items: center;
-        transition: all 0.2s;
-    }
-    .toggle-panel-btn:hover { color: var(--text); background: var(--surface2); }
-    .chat-layout.panel-collapsed .toggle-panel-btn { right: 8px; }
-    .toggle-panel-btn svg { width: 16px; height: 16px; }
-
     @media (max-width: 768px) {
         .chat-layout { grid-template-columns: 1fr; }
         .plugin-panel { display: none; }
-        .toggle-panel-btn { display: none; }
+        .chat-config .panel-toggle-inline { display: none; }
+        .chat-layout { padding: 0.5rem; }
         .chat-messages { padding: 1rem; }
         .chat-input { padding: 0.75rem 1rem; }
+        .msg { max-width: 92%; }
+        .msg-row-tool { padding-left: 0; }
+        .tool-event { max-width: 94%; }
     }
 </style>
 {% endblock %}
@@ -366,6 +533,7 @@
 <div class="chat-layout" id="chat-layout">
     <!-- Chat main area -->
     <div class="chat-main">
+        <div class="chat-stage">
         <!-- Top config bar -->
         <div class="chat-config">
             <span class="config-label">Binding</span>
@@ -380,6 +548,12 @@
                 <input type="range" id="temp-slider" min="0" max="2" step="0.1" value="0.7">
                 <span class="temp-value" id="temp-value">0.7</span>
             </div>
+            <button class="btn-icon panel-toggle-inline" onclick="togglePanel()" title="Toggle plugin panel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="15" y1="3" x2="15" y2="21"/>
+                </svg>
+            </button>
             <button class="btn btn-primary btn-sm new-chat-btn" onclick="createSession()">+ New Chat</button>
         </div>
 
@@ -390,7 +564,7 @@
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
                 <h2>Start a conversation</h2>
-                <p>Select a binding and click New Chat, or pick up an existing session from the sidebar.</p>
+                <p>Preparing your chat workspace...</p>
             </div>
         </div>
 
@@ -401,17 +575,13 @@
             <button class="btn btn-primary btn-send" onclick="sendMessage()" id="send-btn" disabled>Send</button>
             <button class="btn btn-outline btn-send" onclick="stopSession()" id="stop-btn" style="display:none;">Stop</button>
         </div>
+        </div>
     </div>
 
     <!-- Right plugin panel -->
     <div class="plugin-panel">
         <div class="panel-header">
             <h3>Plugins</h3>
-            <button class="btn-icon" onclick="togglePanel()" title="Collapse panel">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                    <polyline points="9 18 15 12 9 6"/>
-                </svg>
-            </button>
         </div>
         <div class="panel-body">
             {% for cap in capabilities %}
@@ -421,9 +591,13 @@
                     <div class="plugin-name">{{ cap.name }}</div>
                     <div class="plugin-desc">{{ cap.description or cap.kind }}</div>
                 </div>
+                {% if cap.is_builtin %}
+                <span class="badge badge-active" title="Always available local tool">Built-in</span>
+                {% else %}
                 <input type="checkbox" class="toggle" id="cap-{{ cap.id }}"
                        {% if cap.status == 'active' %}checked{% endif %}
                        onchange="toggleCapability('{{ cap.id }}', this.checked)">
+                {% endif %}
             </div>
             {% endfor %}
             {% if not capabilities %}
@@ -443,7 +617,7 @@
                 </div>
                 <div id="session-list">
                 {% for sess in sessions %}
-                <div class="session-item" onclick="loadSession('{{ sess.id }}')" id="sess-{{ sess.id }}">
+                <div class="session-item" onclick="loadSession('{{ sess.id }}')" id="sess-{{ sess.id }}" data-session-id="{{ sess.id }}">
                     <span class="status-dot {{ sess.session_status }}"></span>
                     <span class="truncate">{{ sess.title or sess.id[:8] }}</span>
                 </div>
@@ -457,25 +631,30 @@
     </div>
 </div>
 
-<!-- Toggle panel button (floating) -->
-<button class="toggle-panel-btn" onclick="togglePanel()" id="toggle-panel-btn" title="Toggle plugin panel">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <line x1="15" y1="3" x2="15" y2="21"/>
-    </svg>
-</button>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const DEFAULT_MODEL = '{{ default_model }}';
 let currentSessionId = null;
 let eventSource = null;
+let thinkingTicker = null;
+let thinkingStartedAt = 0;
 
 // Temperature slider
 const tempSlider = document.getElementById('temp-slider');
 const tempValue = document.getElementById('temp-value');
 tempSlider.addEventListener('input', () => { tempValue.textContent = tempSlider.value; });
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const firstSession = document.querySelector('#session-list .session-item');
+    if (firstSession?.dataset?.sessionId) {
+        await loadSession(firstSession.dataset.sessionId);
+        return;
+    }
+    await createSession();
+});
 
 // Toggle plugin panel
 function togglePanel() {
@@ -507,7 +686,7 @@ async function clearAllSessions() {
     const empty = document.createElement('div');
     empty.className = 'chat-empty';
     empty.id = 'chat-empty';
-    empty.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:0.8rem;opacity:0.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h2>Start a conversation</h2><p>Select a binding and click New Chat.</p>';
+    empty.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:0.8rem;opacity:0.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h2>Start a conversation</h2><p>Creating a fresh chat session...</p>';
     document.getElementById('chat-messages').appendChild(empty);
     document.getElementById('user-input').disabled = true;
     document.getElementById('send-btn').disabled = true;
@@ -539,6 +718,7 @@ async function createSession() {
         const item = document.createElement('div');
         item.className = 'session-item active';
         item.id = 'sess-' + session.id;
+        item.dataset.sessionId = session.id;
         item.onclick = () => loadSession(session.id);
         item.innerHTML = '<span class="status-dot idle"></span><span>New Session</span>';
         list.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
@@ -573,32 +753,137 @@ async function loadSession(sessionId) {
     }
 }
 
-// Append message with avatar-style bubbles
 function appendMessage(msg) {
     const container = document.getElementById('chat-messages');
-    const row = document.createElement('div');
+    if (!container) return;
 
     if (msg.role === 'user') {
-        row.className = 'msg-row msg-row-user';
-        row.innerHTML = `
-            <div class="msg msg-user"><div class="msg-content">${escapeHtml(msg.content || '')}</div></div>
-            <div class="msg-avatar msg-avatar-user">U</div>`;
+        container.appendChild(buildUserRow(msg.content || ''));
     } else if (msg.role === 'assistant') {
-        row.className = 'msg-row msg-row-assistant';
-        row.innerHTML = `
-            <div class="msg-avatar msg-avatar-assistant">AI</div>
-            <div class="msg msg-assistant"><div class="msg-content">${escapeHtml(msg.content || '')}</div></div>`;
+        container.appendChild(buildAssistantRow(msg.content || '', false));
     } else if (msg.role === 'tool') {
-        row.className = 'msg-row msg-row-tool';
-        row.innerHTML = `
-            <div class="msg msg-tool"><div class="msg-role">Tool: ${escapeHtml(msg.tool_name || 'unknown')}</div><div class="msg-content">${escapeHtml(msg.tool_result || msg.content || '')}</div></div>`;
+        container.appendChild(buildToolRow('result', msg.tool_name || 'tool', msg.tool_result || msg.content || ''));
     } else if (msg.role === 'system') {
+        const row = document.createElement('div');
         row.className = 'msg-row msg-row-system';
         row.innerHTML = `<div class="msg msg-system"><div class="msg-content">${escapeHtml(msg.content || '')}</div></div>`;
+        container.appendChild(row);
     }
-
-    container.appendChild(row);
     container.scrollTop = container.scrollHeight;
+}
+
+function buildUserRow(content) {
+    const row = document.createElement('div');
+    row.className = 'msg-row msg-row-user';
+    row.innerHTML = `
+        <div class="msg msg-user"><div class="msg-content">${escapeHtml(content)}</div></div>
+        <div class="msg-avatar msg-avatar-user">U</div>`;
+    return row;
+}
+
+function buildAssistantRow(content, streaming) {
+    const row = document.createElement('div');
+    row.className = 'msg-row msg-row-assistant';
+    const body = renderAssistantBody(content, {streaming});
+    row.innerHTML = `
+        <div class="msg-avatar msg-avatar-assistant">AI</div>
+        <div class="msg msg-assistant">${body}</div>`;
+    return row;
+}
+
+function buildToolRow(kind, toolName, payload) {
+    const row = document.createElement('div');
+    row.className = 'msg-row msg-row-tool';
+    const chipClass = kind === 'call' ? 'call' : 'result';
+    const chipText = kind === 'call' ? 'Tool Call' : 'Tool Result';
+    const body = normalizePrettyPayload(payload);
+    row.innerHTML = `
+        <div class="tool-event">
+            <div class="tool-event-head">
+                <span class="tool-event-name">${escapeHtml(toolName || 'tool')}</span>
+                <span class="tool-chip ${chipClass}">${chipText}</span>
+            </div>
+            <div class="tool-event-body">
+                <pre>${escapeHtml(body)}</pre>
+            </div>
+        </div>`;
+    return row;
+}
+
+function renderAssistantBody(content, options = {}) {
+    const parsed = parseThoughtBlocks(content || '');
+    const thoughtHtml = parsed.thoughts.map((thought, idx) => {
+        const summaryText = options.streaming
+            ? `Thinking #${idx + 1}`
+            : `Thinking #${idx + 1} (collapsed)`;
+        return `
+            <details class="thought-block"${options.streaming ? ' open' : ''}>
+                <summary><span class="thought-caret">▶</span>${escapeHtml(summaryText)}</summary>
+                <div class="thought-body">${renderMarkdown(thought)}</div>
+            </details>`;
+    }).join('');
+
+    const main = parsed.visible.trim()
+        ? `<div class="md-content">${renderMarkdown(parsed.visible)}</div>`
+        : `<div class="md-content text-dim text-sm">${options.streaming ? 'Thinking...' : ''}</div>`;
+    return `${thoughtHtml}${main}`;
+}
+
+function parseThoughtBlocks(rawText) {
+    let text = String(rawText || '');
+    const thoughts = [];
+    const pattern = /<(?:think|thinking)>([\s\S]*?)(?:<\/(?:think|thinking)>|$)/gi;
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+        const thought = (match[1] || '').trim();
+        if (thought) thoughts.push(thought);
+    }
+    text = text.replace(/<(?:think|thinking)>[\s\S]*?(?:<\/(?:think|thinking)>|$)/gi, '').trim();
+    return {thoughts, visible: text};
+}
+
+function renderMarkdown(markdownText) {
+    const text = String(markdownText || '');
+    if (window.marked && typeof window.marked.parse === 'function') {
+        return sanitizeHtml(window.marked.parse(text, {breaks: true, gfm: true}));
+    }
+    return `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
+}
+
+function sanitizeHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('script,style,iframe,object,embed,link,meta').forEach((el) => el.remove());
+    template.content.querySelectorAll('*').forEach((el) => {
+        for (const attr of [...el.attributes]) {
+            const name = attr.name.toLowerCase();
+            const value = attr.value?.toLowerCase() || '';
+            if (name.startsWith('on')) {
+                el.removeAttribute(attr.name);
+                continue;
+            }
+            if ((name === 'href' || name === 'src') && value.startsWith('javascript:')) {
+                el.removeAttribute(attr.name);
+            }
+        }
+    });
+    return template.innerHTML;
+}
+
+function normalizePrettyPayload(payload) {
+    if (payload === null || payload === undefined) return '';
+    if (typeof payload === 'string') {
+        try {
+            return JSON.stringify(JSON.parse(payload), null, 2);
+        } catch {
+            return payload;
+        }
+    }
+    try {
+        return JSON.stringify(payload, null, 2);
+    } catch {
+        return String(payload);
+    }
 }
 
 // Send message
@@ -622,14 +907,9 @@ async function sendMessage() {
     document.getElementById('stop-btn').style.display = 'inline-flex';
     input.disabled = true;
 
-    // Typing indicator
-    const typingRow = document.createElement('div');
-    typingRow.className = 'msg-row msg-row-assistant';
-    typingRow.id = 'typing-row';
-    typingRow.innerHTML = `
-        <div class="msg-avatar msg-avatar-assistant">AI</div>
-        <div class="msg msg-assistant typing-indicator"><div class="msg-content typing-dots">Thinking</div></div>`;
+    const typingRow = buildThinkingRow();
     document.getElementById('chat-messages').appendChild(typingRow);
+    startThinkingTicker();
 
     // SSE streaming
     eventSource = new EventSource(`/api/sessions/${currentSessionId}/stream`);
@@ -639,10 +919,10 @@ async function sendMessage() {
         const data = JSON.parse(e.data);
         const typingRow = document.getElementById('typing-row');
         if (typingRow) {
+            stopThinkingTicker();
             assistantContent += data.content || '';
-            const contentEl = typingRow.querySelector('.msg-content');
-            contentEl.textContent = assistantContent;
-            contentEl.classList.remove('typing-dots');
+            typingRow.replaceWith(buildStreamingRow(assistantContent));
+            document.getElementById('typing-row')?.setAttribute('id', 'typing-row');
             document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
         }
     });
@@ -650,10 +930,16 @@ async function sendMessage() {
     eventSource.addEventListener('tool_call', (e) => {
         const data = JSON.parse(e.data);
         const typingRow = document.getElementById('typing-row');
-        if (typingRow) typingRow.remove();
+        if (typingRow) {
+            stopThinkingTicker();
+            typingRow.remove();
+        }
         if (assistantContent) appendMessage({role: 'assistant', content: assistantContent});
         assistantContent = '';
-        appendMessage({role: 'tool', tool_name: data.tool_name, content: JSON.stringify(data.tool_args, null, 2)});
+        document.getElementById('chat-messages').appendChild(
+            buildToolRow('call', data.tool_name || 'tool', data.tool_args),
+        );
+        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
     });
 
     eventSource.addEventListener('tool_result', (e) => {
@@ -664,28 +950,39 @@ async function sendMessage() {
     eventSource.addEventListener('done', (e) => {
         const data = JSON.parse(e.data);
         const typingRow = document.getElementById('typing-row');
-        if (typingRow) typingRow.remove();
-        if (data.content) appendMessage({role: 'assistant', content: data.content});
+        if (typingRow) {
+            stopThinkingTicker();
+            typingRow.remove();
+        }
+        const finalContent = data.content || assistantContent;
+        if (finalContent) appendMessage({role: 'assistant', content: finalContent});
         finishRun();
     });
 
     eventSource.addEventListener('error', (e) => {
         const data = e.data ? JSON.parse(e.data) : {};
         const typingRow = document.getElementById('typing-row');
-        if (typingRow) typingRow.remove();
+        if (typingRow) {
+            stopThinkingTicker();
+            typingRow.remove();
+        }
         appendMessage({role: 'system', content: `Error: ${data.message || 'Unknown error'}`});
         finishRun();
     });
 
     eventSource.onerror = () => {
         const typingRow = document.getElementById('typing-row');
-        if (typingRow) typingRow.remove();
+        if (typingRow) {
+            stopThinkingTicker();
+            typingRow.remove();
+        }
         finishRun();
     };
 }
 
 function finishRun() {
     if (eventSource) { eventSource.close(); eventSource = null; }
+    stopThinkingTicker();
     document.getElementById('send-btn').style.display = 'inline-flex';
     document.getElementById('stop-btn').style.display = 'none';
     document.getElementById('user-input').disabled = false;
@@ -704,6 +1001,48 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = String(text);
     return div.innerHTML;
+}
+
+function buildStreamingRow(content) {
+    const row = buildAssistantRow(content, true);
+    row.id = 'typing-row';
+    return row;
+}
+
+function buildThinkingRow() {
+    const row = document.createElement('div');
+    row.className = 'msg-row msg-row-assistant';
+    row.id = 'typing-row';
+    row.innerHTML = `
+        <div class="msg-avatar msg-avatar-assistant">AI</div>
+        <div class="msg msg-assistant">
+            <div class="thinking-status">
+                <span class="thinking-dot"></span>
+                <span class="thinking-label" id="thinking-label">Thinking... (0s)</span>
+            </div>
+        </div>`;
+    return row;
+}
+
+function startThinkingTicker() {
+    stopThinkingTicker();
+    thinkingStartedAt = Date.now();
+    updateThinkingLabel();
+    thinkingTicker = setInterval(updateThinkingLabel, 500);
+}
+
+function stopThinkingTicker() {
+    if (!thinkingTicker) return;
+    clearInterval(thinkingTicker);
+    thinkingTicker = null;
+}
+
+function updateThinkingLabel() {
+    const label = document.getElementById('thinking-label');
+    if (!label) return;
+    const elapsed = Math.max(0, Math.floor((Date.now() - thinkingStartedAt) / 1000));
+    const phase = elapsed < 6 ? 'Thinking' : elapsed < 15 ? 'Still thinking' : 'Working, network is alive';
+    label.textContent = `${phase}... (${elapsed}s)`;
 }
 </script>
 {% endblock %}

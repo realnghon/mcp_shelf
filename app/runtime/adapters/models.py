@@ -1,21 +1,27 @@
 """Model adapter - resolves LLM config from DB first, then .env fallback."""
 
-from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 
-from app.repositories.llm_config_repo import LLMConfigRepo
-from app.repositories.binding_repo import BindingRepo
 from app.core.config import settings
+from app.repositories.binding_repo import BindingRepo
+from app.repositories.llm_config_repo import LLMConfigRepo
 
 _model_cache: dict = {}
 
 
-async def get_chat_model(binding_id: str | None = None) -> object:
+async def get_chat_model(
+    binding_id: str | None = None,
+    model_key_override: str | None = None,
+) -> object:
     """Get a chat model instance, resolving config from DB -> .env."""
     repo = LLMConfigRepo()
     # Default model from .env settings
     model_key = f"openai:{settings.openai_model}"
     temperature = 0.7
+
+    if model_key_override:
+        model_key = model_key_override
 
     if binding_id:
         bind_repo = BindingRepo()
@@ -35,7 +41,7 @@ async def get_chat_model(binding_id: str | None = None) -> object:
     if db_config:
         api_key = db_config.get("api_key")
         base_url = db_config.get("base_url")
-        if db_config.get("default_model") and model_name == model_key:
+        if db_config.get("default_model") and not binding_id:
             model_name = db_config["default_model"]
 
     # Fallback to .env
@@ -51,6 +57,7 @@ async def get_chat_model(binding_id: str | None = None) -> object:
             base_url = settings.openai_base_url or None
         elif provider == "anthropic":
             base_url = settings.anthropic_base_url or None
+    base_url = _normalize_base_url(provider, base_url)
 
     cache_key = f"{provider}:{model_name}:{temperature}:{base_url or 'default'}"
     if cache_key in _model_cache:
@@ -80,3 +87,14 @@ async def get_chat_model(binding_id: str | None = None) -> object:
 
     _model_cache[cache_key] = model
     return model
+
+
+def _normalize_base_url(provider: str, base_url: str | None) -> str | None:
+    if not base_url:
+        return base_url
+    if provider != "openai":
+        return base_url
+    normalized = base_url.rstrip("/")
+    if normalized.endswith("/v1"):
+        return normalized
+    return f"{normalized}/v1"

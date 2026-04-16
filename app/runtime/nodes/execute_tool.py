@@ -1,3 +1,5 @@
+import json
+
 from app.runtime.state import AgentState
 
 
@@ -29,6 +31,13 @@ async def execute_tool_node(state: AgentState) -> dict:
         tool_name = tc.get("name", tc.get("function", {}).get("name", ""))
         tool_args = tc.get("args", tc.get("function", {}).get("arguments", {}))
         tool_call_id = tc.get("id", "")
+        if isinstance(tool_args, str):
+            try:
+                tool_args = json.loads(tool_args)
+            except json.JSONDecodeError:
+                tool_args = {"input": tool_args}
+        if not isinstance(tool_args, dict):
+            tool_args = {"input": tool_args}
 
         tool = tool_map.get(tool_name)
 

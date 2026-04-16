@@ -19,7 +19,7 @@ async def get_mcp_tools(connection_config: dict[str, Any]) -> list[StructuredToo
     if cache_key and cache_key in _mcp_tool_cache:
         return _mcp_tool_cache[cache_key]
 
-    transport = connection_config.get("transport", "http")
+    transport = _normalize_transport(connection_config.get("transport", "http"))
     endpoint_url = connection_config.get("endpoint_url", "")
     headers = connection_config.get("headers_template", {})
 
@@ -66,3 +66,12 @@ def clear_mcp_cache(endpoint_url: str | None = None):
         _mcp_tool_cache.pop(endpoint_url, None)
     else:
         _mcp_tool_cache.clear()
+
+
+def _normalize_transport(raw_transport: str) -> str:
+    mapping = {
+        "http": "streamable_http",
+        "streamable_http": "streamable_http",
+        "sse": "sse",
+    }
+    return mapping.get((raw_transport or "").lower(), raw_transport)

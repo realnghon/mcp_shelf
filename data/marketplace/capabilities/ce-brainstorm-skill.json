@@ -1,0 +1,21 @@
+{
+  "kind": "skill",
+  "name": "CE Brainstorm",
+  "slug": "ce-brainstorm-skill",
+  "description": "Compound Engineering brainstorm skill mounted from local template.",
+  "category": "workflow",
+  "tags": ["compound-engineering", "brainstorm", "requirements"],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "config_schema": {},
+  "connection_config": {
+    "path": "data/templates/plugins/compound-engineering/skills/ce-brainstorm/SKILL.md",
+    "tool_name": "skill_ce_brainstorm"
+  },
+  "metadata": {
+    "icon": "lightbulb",
+    "homepage": "https://github.com/EveryInc/compound-engineering-plugin",
+    "readme": "Template skill capability sourced from a local compound-engineering plugin scaffold."
+  }
+}
