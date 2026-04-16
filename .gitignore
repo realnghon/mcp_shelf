@@ -46,6 +46,7 @@ htmlcov/
 
 # Ruff
 .ruff_cache/
+.worktrees/
 
 # Local agent/session artifacts
 .claude/
