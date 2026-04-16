@@ -18,17 +18,27 @@ class HealthcheckService:
         if not cap:
             raise ValueError(f"Capability {capability_id} not found")
 
+        await self.health_repo.ensure_discovery_status_column()
+
         if cap["kind"] != "mcp":
-            # For local tools/skills, just mark ok
-            record = await self.health_repo.create(capability_id, "ok", detail="Non-MCP capability")
+            record = await self.health_repo.create(
+                capability_id,
+                "ok",
+                detail="Non-MCP capability",
+                discovery_status="not_applicable",
+            )
             return record
 
-        # For MCP, try to connect
         config = cap["connection_config"]
         endpoint = config.get("endpoint_url", "")
 
         if not endpoint:
-            record = await self.health_repo.create(capability_id, "failed", detail="No endpoint configured")
+            record = await self.health_repo.create(
+                capability_id,
+                "failed",
+                detail="No endpoint configured",
+                discovery_status="unavailable",
+            )
             return record
 
         try:
@@ -40,13 +50,26 @@ class HealthcheckService:
             if resp.status_code < 500:
                 status = "ok"
                 detail = f"HTTP {resp.status_code}"
+                discovery_status = "available"
             else:
                 status = "degraded"
                 detail = f"HTTP {resp.status_code}"
+                discovery_status = "degraded"
 
-            record = await self.health_repo.create(capability_id, status, latency_ms, detail)
+            record = await self.health_repo.create(
+                capability_id,
+                status,
+                latency_ms,
+                detail,
+                discovery_status=discovery_status,
+            )
         except Exception as e:
-            record = await self.health_repo.create(capability_id, "failed", detail=str(e))
+            record = await self.health_repo.create(
+                capability_id,
+                "failed",
+                detail=str(e),
+                discovery_status="unavailable",
+            )
 
         await self.audit.log("healthcheck", "capability", capability_id)
         return record

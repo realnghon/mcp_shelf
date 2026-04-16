@@ -2,10 +2,14 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas.capability import CapabilityCreate, CapabilityUpdate, CapabilityOut, CapabilityVersionOut, CapabilityVersionCreate
 from app.schemas.common import PaginatedResponse
+from app.services.capability_test_service import CapabilityTestService
+from app.services.capability_validation_service import CapabilityValidationService
 from app.services.registry_service import RegistryService
 
 router = APIRouter()
 svc = RegistryService()
+validation_svc = CapabilityValidationService()
+test_svc = CapabilityTestService()
 
 
 @router.get("", response_model=PaginatedResponse)
@@ -94,19 +98,26 @@ async def create_version(cap_id: str, data: CapabilityVersionCreate):
         raise HTTPException(404, str(e))
 
 
+@router.post("/{cap_id}/test")
+async def test_capability(cap_id: str, payload: dict):
+    request_payload = payload.get("request_payload") or {}
+    try:
+        return await test_svc.run_test(cap_id, request_payload)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/{cap_id}/tests")
+async def list_capability_tests(cap_id: str, limit: int = Query(10, ge=1, le=100)):
+    try:
+        return await test_svc.list_tests(cap_id, limit)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
 @router.post("/validate")
 async def validate_capability(config: dict):
-    """Validate that an MCP endpoint is reachable."""
-    from app.services.healthcheck_service import HealthcheckService
-    hs = HealthcheckService()
-    # Create a temporary capability-like dict for validation
-    import httpx
-    endpoint = config.get("connection_config", {}).get("endpoint_url", "")
-    if not endpoint:
-        return {"valid": False, "detail": "No endpoint_url provided"}
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(endpoint)
-        return {"valid": resp.status_code < 500, "status_code": resp.status_code}
-    except Exception as e:
-        return {"valid": False, "detail": str(e)}
+        return await validation_svc.validate_capability(config)
+    except ValueError as e:
+        raise HTTPException(404, str(e))

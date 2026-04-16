@@ -12,8 +12,17 @@ CREATE TABLE IF NOT EXISTS capabilities (
   visibility TEXT NOT NULL DEFAULT 'public',
   status TEXT NOT NULL DEFAULT 'active',
   owner_id TEXT,
+  type TEXT NOT NULL DEFAULT 'tool',
+  source_type TEXT NOT NULL DEFAULT 'custom',
+  source_id TEXT,
+  input_schema TEXT NOT NULL DEFAULT '{}',
+  output_schema TEXT NOT NULL DEFAULT '{}',
   config_schema TEXT NOT NULL DEFAULT '{}',
   connection_config TEXT NOT NULL DEFAULT '{}',
+  schema_status TEXT,
+  last_test_status TEXT,
+  last_tested_at TEXT,
+  last_latency_ms INTEGER,
   metadata TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
@@ -31,6 +40,20 @@ CREATE TABLE IF NOT EXISTS capability_versions (
   UNIQUE(capability_id, version),
   FOREIGN KEY(capability_id) REFERENCES capabilities(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS capability_tests (
+  id TEXT PRIMARY KEY,
+  capability_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  latency_ms INTEGER,
+  request_payload TEXT NOT NULL DEFAULT '{}',
+  response_payload TEXT NOT NULL DEFAULT '{}',
+  error_message TEXT,
+  tested_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(capability_id) REFERENCES capabilities(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_capability_tests_capability_id ON capability_tests(capability_id, tested_at DESC);
 
 CREATE TABLE IF NOT EXISTS bindings (
   id TEXT PRIMARY KEY,

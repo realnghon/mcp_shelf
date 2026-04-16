@@ -23,6 +23,7 @@
         <button class="btn btn-success btn-sm" hx-post="/api/capabilities/{{ capability.id }}/activate" hx-swap="none">Activate</button>
         {% endif %}
         <button class="btn btn-outline btn-sm" hx-post="/api/capabilities/{{ capability.id }}/healthcheck" hx-target="#health-result">Health Check</button>
+        <button class="btn btn-outline btn-sm" hx-post="/api/capabilities/{{ capability.id }}/test" hx-vals='{"request_payload": {}}' hx-target="#test-result">Run Test</button>
     </div>
 </div>
 
@@ -40,16 +41,40 @@
 </style>
 
 <div class="grid grid-2">
-    <div class="card">
-        <h3>Basic Info</h3>
-        <table>
-            <tr><th>Slug</th><td>{{ capability.slug }}</td></tr>
-            <tr><th>Category</th><td>{{ capability.category or '-' }}</td></tr>
-            <tr><th>Version</th><td>{{ capability.version }}</td></tr>
-            <tr><th>Visibility</th><td>{{ capability.visibility }}</td></tr>
-            <tr><th>Description</th><td>{{ capability.description or '-' }}</td></tr>
-            <tr><th>Tags</th><td>{{ capability.tags | join(', ') if capability.tags else '-' }}</td></tr>
-        </table>
+    <div>
+        <div class="card">
+            <h3>Basic Info</h3>
+            <table>
+                <tr><th>Slug</th><td>{{ capability.slug }}</td></tr>
+                <tr><th>Type</th><td>{{ capability.type }}</td></tr>
+                <tr><th>Source Type</th><td>{{ capability.source_type }}</td></tr>
+                <tr><th>Source ID</th><td>{{ capability.source_id or '-' }}</td></tr>
+                <tr><th>Category</th><td>{{ capability.category or '-' }}</td></tr>
+                <tr><th>Version</th><td>{{ capability.version }}</td></tr>
+                <tr><th>Visibility</th><td>{{ capability.visibility }}</td></tr>
+                <tr><th>Description</th><td>{{ capability.description or '-' }}</td></tr>
+                <tr><th>Tags</th><td>{{ capability.tags | join(', ') if capability.tags else '-' }}</td></tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Schema Status</h3>
+            <table>
+                <tr><th>Definition</th><td>{{ capability.schema_status or 'unknown' }}</td></tr>
+                <tr><th>Input Schema</th><td><pre style="white-space: pre-wrap;">{{ capability.input_schema | tojson(indent=2) }}</pre></td></tr>
+                <tr><th>Output Schema</th><td><pre style="white-space: pre-wrap;">{{ capability.output_schema | tojson(indent=2) }}</pre></td></tr>
+                <tr><th>Config Schema</th><td><pre style="white-space: pre-wrap;">{{ capability.config_schema | tojson(indent=2) }}</pre></td></tr>
+            </table>
+        </div>
+
+        <div class="card" id="test-result">
+            <h3>Latest Test</h3>
+            <table>
+                <tr><th>Status</th><td>{{ capability.last_test_status or 'not_run' }}</td></tr>
+                <tr><th>Tested At</th><td>{{ capability.last_tested_at or '-' }}</td></tr>
+                <tr><th>Latency</th><td>{% if capability.last_latency_ms is not none %}{{ capability.last_latency_ms }} ms{% else %}-{% endif %}</td></tr>
+            </table>
+        </div>
     </div>
 
     <div>
@@ -62,7 +87,49 @@
             <h3>Health Check</h3>
             <p class="text-dim text-sm">Click "Health Check" to test connectivity</p>
         </div>
+
+        <div class="card">
+            <h3>Health History</h3>
+            {% if health_history %}
+            <table>
+                <thead><tr><th>Status</th><th>Discovery</th><th>Detail</th><th>Checked</th></tr></thead>
+                <tbody>
+                {% for item in health_history %}
+                    <tr>
+                        <td>{{ item.status }}</td>
+                        <td>{{ item.discovery_status or '-' }}</td>
+                        <td>{{ item.detail or '-' }}</td>
+                        <td>{{ item.checked_at }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-dim text-sm">No health checks recorded yet.</p>
+            {% endif %}
+        </div>
     </div>
+</div>
+
+<div class="card mt-2">
+    <h3>Test History</h3>
+    {% if test_history %}
+    <table>
+        <thead><tr><th>Status</th><th>Latency</th><th>Request</th><th>Tested At</th></tr></thead>
+        <tbody>
+        {% for item in test_history %}
+            <tr>
+                <td>{{ item.status }}</td>
+                <td>{% if item.latency_ms is not none %}{{ item.latency_ms }} ms{% else %}-{% endif %}</td>
+                <td><pre style="white-space: pre-wrap;">{{ item.request_payload | tojson(indent=2) }}</pre></td>
+                <td>{{ item.tested_at }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-dim text-sm">No test runs recorded yet.</p>
+    {% endif %}
 </div>
 
 {% if versions %}

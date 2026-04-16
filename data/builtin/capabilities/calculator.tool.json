@@ -1,0 +1,53 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "Calculator",
+  "slug": "calculator",
+  "description": "Evaluate a mathematical expression safely.",
+  "category": "utility",
+  "tags": ["builtin", "calculator", "math"],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "expression": {
+        "type": "string",
+        "title": "Expression",
+        "description": "Mathematical expression to evaluate"
+      }
+    },
+    "required": ["expression"]
+  },
+  "output_schema": {
+    "type": "string",
+    "description": "Calculation result as a string, or an error message prefixed with 'Error:'"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "calculator"
+  },
+  "metadata": {
+    "icon": "calculator",
+    "examples": [
+      {
+        "input": {
+          "expression": "2 + 3 * 4"
+        },
+        "output": "14"
+      },
+      {
+        "input": {
+          "expression": "2 ** 5"
+        },
+        "output": "32"
+      }
+    ]
+  }
+}

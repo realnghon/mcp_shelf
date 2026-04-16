@@ -14,7 +14,7 @@ from app.core.db import get_db
 logger = logging.getLogger(__name__)
 
 # Current schema version - bump this when schema changes
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Migrations: index 0 = v0->v1, index 1 = v1->v2, etc.
 MIGRATIONS: list[str] = [
@@ -39,7 +39,84 @@ MIGRATIONS: list[str] = [
         updated_at TEXT NOT NULL
     );
     """,
+    # v2 -> v3: Add unified registry capability fields and capability_tests table
+    """ALTER TABLE capabilities ADD COLUMN type TEXT NOT NULL DEFAULT 'tool';
+    ALTER TABLE capabilities ADD COLUMN source_type TEXT NOT NULL DEFAULT 'custom';
+    ALTER TABLE capabilities ADD COLUMN source_id TEXT;
+    ALTER TABLE capabilities ADD COLUMN input_schema TEXT NOT NULL DEFAULT '{}';
+    ALTER TABLE capabilities ADD COLUMN output_schema TEXT NOT NULL DEFAULT '{}';
+    ALTER TABLE capabilities ADD COLUMN schema_status TEXT;
+    ALTER TABLE capabilities ADD COLUMN last_test_status TEXT;
+    ALTER TABLE capabilities ADD COLUMN last_tested_at TEXT;
+    ALTER TABLE capabilities ADD COLUMN last_latency_ms INTEGER;
+
+    CREATE TABLE IF NOT EXISTS capability_tests (
+        id TEXT PRIMARY KEY,
+        capability_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        latency_ms INTEGER,
+        request_payload TEXT NOT NULL DEFAULT '{}',
+        response_payload TEXT NOT NULL DEFAULT '{}',
+        error_message TEXT,
+        tested_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(capability_id) REFERENCES capabilities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_capability_tests_capability_id
+        ON capability_tests(capability_id, tested_at DESC);
+    """,
 ]
+
+
+async def _table_exists(db: aiosqlite.Connection, table_name: str) -> bool:
+    cursor = await db.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        [table_name],
+    )
+    return await cursor.fetchone() is not None
+
+
+async def _column_exists(db: aiosqlite.Connection, table_name: str, column_name: str) -> bool:
+    cursor = await db.execute(f"PRAGMA table_info({table_name})")
+    rows = await cursor.fetchall()
+    return any(row[1] == column_name for row in rows)
+
+
+async def _ensure_v3_capability_fields(db: aiosqlite.Connection):
+    capability_columns: list[tuple[str, str]] = [
+        ("type", "TEXT NOT NULL DEFAULT 'tool'"),
+        ("source_type", "TEXT NOT NULL DEFAULT 'custom'"),
+        ("source_id", "TEXT"),
+        ("input_schema", "TEXT NOT NULL DEFAULT '{}'"),
+        ("output_schema", "TEXT NOT NULL DEFAULT '{}'"),
+        ("schema_status", "TEXT"),
+        ("last_test_status", "TEXT"),
+        ("last_tested_at", "TEXT"),
+        ("last_latency_ms", "INTEGER"),
+    ]
+    for column_name, column_sql in capability_columns:
+        if not await _column_exists(db, "capabilities", column_name):
+            await db.execute(f"ALTER TABLE capabilities ADD COLUMN {column_name} {column_sql}")
+
+    await db.execute(
+        """CREATE TABLE IF NOT EXISTS capability_tests (
+            id TEXT PRIMARY KEY,
+            capability_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            latency_ms INTEGER,
+            request_payload TEXT NOT NULL DEFAULT '{}',
+            response_payload TEXT NOT NULL DEFAULT '{}',
+            error_message TEXT,
+            tested_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(capability_id) REFERENCES capabilities(id) ON DELETE CASCADE
+        )"""
+    )
+    await db.execute(
+        """CREATE INDEX IF NOT EXISTS idx_capability_tests_capability_id
+        ON capability_tests(capability_id, tested_at DESC)"""
+    )
+    await db.commit()
 
 
 async def get_schema_version(db: aiosqlite.Connection) -> int:
@@ -69,26 +146,38 @@ async def run_migrations():
     current_version = await get_schema_version(db)
 
     if current_version == 0:
-        # First run: apply full schema
-        schema_path = Path(__file__).parent.parent.parent / "scripts" / "schema.sql"
-        if schema_path.exists():
-            schema_sql = schema_path.read_text(encoding="utf-8")
-            await db.executescript(schema_sql)
-        # Apply v0->v1 migration (creates _meta table)
-        await db.executescript(MIGRATIONS[0])
-        await set_schema_version(db, 1)
-        current_version = 1
-        logger.info("Database initialized at schema version 1")
+        has_capabilities = await _table_exists(db, "capabilities")
+        has_meta = await _table_exists(db, "_meta")
 
-    # Apply any additional migrations
+        if not has_capabilities:
+            schema_path = Path(__file__).parent.parent.parent / "scripts" / "schema.sql"
+            if schema_path.exists():
+                schema_sql = schema_path.read_text(encoding="utf-8")
+                await db.executescript(schema_sql)
+            await db.executescript(MIGRATIONS[0])
+            await set_schema_version(db, SCHEMA_VERSION)
+            logger.info("Database initialized at schema version %d", SCHEMA_VERSION)
+            return
+
+        if not has_meta:
+            await db.executescript(MIGRATIONS[0])
+
+        current_version = 2
+        if await _column_exists(db, "capabilities", "type"):
+            current_version = 3
+        await set_schema_version(db, current_version)
+
     for i in range(current_version, SCHEMA_VERSION):
-        migration_idx = i  # MIGRATIONS[i] = v(i)->v(i+1)
+        migration_idx = i
         if migration_idx < len(MIGRATIONS):
             logger.info(f"Applying migration v{i} -> v{i + 1}")
-            await db.executescript(MIGRATIONS[migration_idx])
+            if i == 2:
+                await _ensure_v3_capability_fields(db)
+            else:
+                await db.executescript(MIGRATIONS[migration_idx])
             await set_schema_version(db, i + 1)
 
     if current_version < SCHEMA_VERSION:
-        logger.info("Database migrated to schema version %d" % SCHEMA_VERSION)
+        logger.info("Database migrated to schema version %d", SCHEMA_VERSION)
     else:
-        logger.info("Database schema is up to date (v%d)" % SCHEMA_VERSION)
+        logger.info("Database schema is up to date (v%d)", SCHEMA_VERSION)

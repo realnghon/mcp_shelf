@@ -1,18 +1,20 @@
 # MCP Shelf
 
-MCP / Tool / Skill 的轻量管理与调试平台。  
-用来快速组装 Agent 能力（Binding），并在网页里验证对话、工具调用和流式输出。
+面向 MCP 优先场景的统一 capability registry 与调试平台。  
+统一管理 builtin、local plugin、remote MCP server，并提供 capability 校验、测试、健康检查与网页调试视图。
 
 ## 为什么做这个
 
-- 把分散的能力配置集中管理：`mcp` / `tool` / `skill`
-- 支持可复用 Binding（模型、提示词、挂载能力）
-- 提供聊天测试台，直接观察 tool call / tool result / streaming
+- 用统一 schema/registry 管理 `builtin` / `plugin` / `mcp_server` capability
+- 对外主打 MCP 服务，对内保留本地运行与调试能力
+- 在同一个货架里查看 capability 定义、测试结果、健康状态与运行配置
 
 ## 功能
 
-- 能力货架：新增、编辑、启停、分类
-- Binding 管理：挂载能力、顺序控制、运行时覆盖参数
+- 统一 capability 货架：builtin、plugin、MCP server 一起展示
+- Capability 校验：检查 schema 与 MCP 连接配置是否完整
+- Capability 测试：执行工具并记录 `last_test_status` / `capability_tests`
+- MCP 健康检查：展示 connectivity / discovery 状态与历史
 - 聊天测试台：多轮会话、SSE 流式输出、工具调用可视化
 - LLM 配置：支持 OpenAI / Anthropic / OpenAI-compatible
 - 数据安全：本地 SQLite，`.env` 与数据库配置分离

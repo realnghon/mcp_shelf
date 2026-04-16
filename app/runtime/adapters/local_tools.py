@@ -12,6 +12,8 @@ import httpx
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
+from app.runtime.adapters.builtin_catalog import load_builtin_capabilities
+
 
 class EchoInput(BaseModel):
     message: str = Field(description="Message to echo back")
@@ -103,17 +105,7 @@ def get_local_tools() -> list[StructuredTool]:
 
 def get_local_tool_catalog() -> list[dict[str, Any]]:
     """Metadata for always-on local tools shown in the UI shelf."""
-    return [
-        {
-            "id": "builtin-calculator",
-            "kind": "tool",
-            "name": "Calculator",
-            "slug": "calculator",
-            "description": "Evaluate a mathematical expression safely.",
-            "status": "active",
-            "is_builtin": True,
-        },
-    ]
+    return load_builtin_capabilities()
 
 
 def get_capability_tools(
