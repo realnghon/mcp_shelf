@@ -1,0 +1,49 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "File Patch",
+  "slug": "file-patch",
+  "description": "Patch a unique text block in a file.",
+  "category": "agent-core",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string"
+      },
+      "old_content": {
+        "type": "string"
+      },
+      "new_content": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "path",
+      "old_content",
+      "new_content"
+    ]
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "file_patch"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

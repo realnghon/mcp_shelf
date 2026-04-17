@@ -1,0 +1,53 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "File Read",
+  "slug": "file-read",
+  "description": "Read file content with line range and optional keyword search.",
+  "category": "agent-core",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string"
+      },
+      "start": {
+        "type": "integer"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "keyword": {
+        "type": "string"
+      },
+      "show_linenos": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "path"
+    ]
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "file_read"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

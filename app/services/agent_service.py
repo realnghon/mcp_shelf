@@ -3,14 +3,14 @@
 import asyncio
 import logging
 from collections.abc import AsyncGenerator
+from typing import Any, cast
 
 from langchain_core.messages import AIMessage, AIMessageChunk
 
 from app.runtime.adapters.models import get_chat_model
-from app.runtime.nodes.build_tools import build_tools_node
+from app.runtime.session_runtime import prepare_session_runtime
 from app.runtime.nodes.call_model import _lc_message_to_dict, _to_lc_messages
 from app.runtime.nodes.execute_tool import execute_tool_node
-from app.runtime.nodes.load_binding import load_binding_node
 from app.runtime.state import AgentState
 from app.schemas.runtime import RuntimeEvent
 from app.schemas.session import MessageCreate, SessionCreate
@@ -111,27 +111,25 @@ class AgentService:
         session_id: str,
         initial_state: AgentState,
     ) -> AsyncGenerator[RuntimeEvent, None]:
-        state = dict(initial_state)
-        state.update(await load_binding_node(state))
-        state.update(await build_tools_node(state))
+        state = await prepare_session_runtime(initial_state)
 
         while True:
             if state.get("error"):
                 raise RuntimeError(state["error"])
-            if state["current_step"] >= state["max_steps"]:
+            if int(state["current_step"]) >= int(state["max_steps"]):
                 raise RuntimeError("Max steps reached")
 
-            state["current_step"] += 1
-            model = await get_chat_model(
-                binding_id=state.get("binding_id"),
-                model_key_override=state.get("model_key"),
+            state["current_step"] = int(state["current_step"]) + 1
+            model: Any = await get_chat_model(
+                binding_id=cast(str | None, state.get("binding_id")),
+                model_key_override=cast(str | None, state.get("model_key")),
             )
 
-            tools = state.get("available_tools", [])
+            tools = cast(list[Any], state.get("available_tools", []))
             if tools:
                 model = model.bind_tools(tools)
 
-            lc_messages = _to_lc_messages(state.get("messages", []))
+            lc_messages = _to_lc_messages(cast(list[dict[str, Any]], state.get("messages", [])))
             merged_chunk: AIMessageChunk | None = None
             merged_message: AIMessage | None = None
             streamed_any = False
@@ -157,7 +155,7 @@ class AgentService:
                 response_msg = await model.ainvoke(lc_messages)
 
             response_dict = _lc_message_to_dict(response_msg)
-            state["messages"] = [*state.get("messages", []), response_dict]
+            state["messages"] = [*cast(list[dict[str, Any]], state.get("messages", [])), response_dict]
 
             await self.session_service.add_message(
                 session_id,
@@ -179,10 +177,10 @@ class AgentService:
                         },
                     )
 
-                before_count = len(state["messages"])
+                before_count = len(cast(list[dict[str, Any]], state["messages"]))
                 tool_output = await execute_tool_node(state)
                 state.update(tool_output)
-                new_tool_msgs = state["messages"][before_count:]
+                new_tool_msgs = cast(list[dict[str, Any]], state["messages"])[before_count:]
 
                 for msg in new_tool_msgs:
                     yield RuntimeEvent(

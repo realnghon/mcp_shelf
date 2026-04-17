@@ -1,0 +1,53 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "File Write",
+  "slug": "file-write",
+  "description": "Write file content (overwrite/append/prepend).",
+  "category": "agent-core",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string"
+      },
+      "content": {
+        "type": "string"
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "overwrite",
+          "append",
+          "prepend"
+        ]
+      }
+    },
+    "required": [
+      "path",
+      "content"
+    ]
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "file_write"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

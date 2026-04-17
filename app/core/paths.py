@@ -13,6 +13,7 @@ def ensure_data_dirs():
         settings.data_dir / "imports",
         settings.data_dir / "icons",
         settings.data_dir / "seeds",
+        settings.data_dir / "memory",
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)

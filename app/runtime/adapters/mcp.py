@@ -1,14 +1,13 @@
 """MCP adapter - loads tools from MCP servers via langchain-mcp-adapters."""
 
+import inspect
 from typing import Any
 
-from langchain_core.tools import StructuredTool
-
 # MCP tool cache
-_mcp_tool_cache: dict[str, list[StructuredTool]] = {}
+_mcp_tool_cache: dict[str, list[Any]] = {}
 
 
-async def get_mcp_tools(connection_config: dict[str, Any]) -> list[StructuredTool]:
+async def get_mcp_tools(connection_config: dict[str, Any]) -> list[Any]:
     """Load tools from an MCP server using langchain-mcp-adapters.
 
     Supports:
@@ -41,9 +40,18 @@ async def get_mcp_tools(connection_config: dict[str, Any]) -> list[StructuredToo
         if headers:
             server_config["mcp-server"]["headers"] = headers
 
-        async with MultiServerMCPClient(server_config) as client:
+        client = MultiServerMCPClient(server_config)  # type: ignore[arg-type]
+        try:
             mcp_tools = client.get_tools()
-            tools = list(mcp_tools)
+            if inspect.isawaitable(mcp_tools):
+                mcp_tools = await mcp_tools
+            tools = list(mcp_tools or [])
+        finally:
+            close_fn = getattr(client, "aclose", None)
+            if callable(close_fn):
+                close_result = close_fn()
+                if inspect.isawaitable(close_result):
+                    await close_result
 
     except ImportError:
         import logging

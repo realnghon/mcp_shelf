@@ -89,6 +89,8 @@ class RegistryService:
         search = kwargs.get("search")
         page = kwargs.get("page", 1)
         page_size = kwargs.get("page_size", 20)
+        sort_by = kwargs.get("sort_by", "updated_at")
+        sort_order = kwargs.get("sort_order", "desc")
 
         filtered = capabilities
         if kind:
@@ -104,6 +106,16 @@ class RegistryService:
                 if needle in (cap.get("name") or "").lower()
                 or needle in (cap.get("description") or "").lower()
             ]
+
+        reverse = str(sort_order).lower() != "asc"
+        if sort_by == "name":
+            filtered = sorted(filtered, key=lambda item: str(item.get("name", "")).lower(), reverse=reverse)
+        elif sort_by == "version":
+            filtered = sorted(filtered, key=lambda item: str(item.get("version", "")).lower(), reverse=reverse)
+        elif sort_by == "schema_status":
+            filtered = sorted(filtered, key=lambda item: str(item.get("schema_status", "")), reverse=reverse)
+        elif sort_by == "last_test_status":
+            filtered = sorted(filtered, key=lambda item: str(item.get("last_test_status", "")), reverse=reverse)
 
         start = max(page - 1, 0) * page_size
         end = start + page_size

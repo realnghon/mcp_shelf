@@ -32,6 +32,8 @@ class CapabilityRepo:
         search: str | None = None,
         page: int = 1,
         page_size: int = 20,
+        sort_by: str = "updated_at",
+        sort_order: str = "desc",
     ) -> tuple[list[dict], int]:
         db = await get_db()
         conditions = []
@@ -51,8 +53,18 @@ class CapabilityRepo:
             params.extend(["%" + search + "%", "%" + search + "%"])
 
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        sortable_columns = {
+            "updated_at": "updated_at",
+            "created_at": "created_at",
+            "name": "name",
+            "version": "version",
+            "schema_status": "schema_status",
+            "last_test_status": "last_test_status",
+        }
+        order_col = sortable_columns.get(sort_by, "updated_at")
+        direction = "ASC" if str(sort_order).lower() == "asc" else "DESC"
         count_sql = f"SELECT COUNT(*) FROM capabilities {where}"
-        data_sql = f"SELECT * FROM capabilities {where} ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+        data_sql = f"SELECT * FROM capabilities {where} ORDER BY {order_col} {direction} LIMIT ? OFFSET ?"
 
         cursor = await db.execute(count_sql, params)
         count_row = await cursor.fetchone()

@@ -31,7 +31,8 @@ class SessionRepo:
         data_sql = f"SELECT * FROM runtime_sessions {where} ORDER BY updated_at DESC LIMIT ? OFFSET ?"
 
         cursor = await db.execute(count_sql, params)
-        total = (await cursor.fetchone())[0]
+        count_row = await cursor.fetchone()
+        total = int(count_row[0]) if count_row else 0
         cursor = await db.execute(data_sql, params + [page_size, (page - 1) * page_size])
         rows = await cursor.fetchall()
         results = []
@@ -146,7 +147,8 @@ class MessageRepo:
             "SELECT COALESCE(MAX(message_index), -1) FROM runtime_messages WHERE session_id = ?",
             [session_id],
         )
-        max_idx = (await cursor.fetchone())[0]
+        max_row = await cursor.fetchone()
+        max_idx = int(max_row[0]) if max_row else -1
         next_idx = max_idx + 1
 
         record = {

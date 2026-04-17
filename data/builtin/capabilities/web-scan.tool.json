@@ -1,0 +1,44 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "Web Scan",
+  "slug": "web-scan",
+  "description": "Read current tab and tab list from builtin web state.",
+  "category": "agent-core",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "tabs_only": {
+        "type": "boolean"
+      },
+      "switch_tab_id": {
+        "type": "string"
+      },
+      "text_only": {
+        "type": "boolean"
+      }
+    }
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "web_scan"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

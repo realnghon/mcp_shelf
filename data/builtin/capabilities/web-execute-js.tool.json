@@ -1,0 +1,50 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "Web Execute JS",
+  "slug": "web-execute-js",
+  "description": "Execute web action script and update builtin web state.",
+  "category": "agent-core",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "script": {
+        "type": "string"
+      },
+      "save_to_file": {
+        "type": "string"
+      },
+      "no_monitor": {
+        "type": "boolean"
+      },
+      "switch_tab_id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "script"
+    ]
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "web_execute_js"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

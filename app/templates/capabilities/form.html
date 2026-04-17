@@ -3,98 +3,220 @@
 {% block content %}
 <h1 class="mb-2">{% if capability %}Edit {{ capability.name }}{% else %}New Capability{% endif %}</h1>
 
-<div class="card">
-    <form id="cap-form" onsubmit="saveCapability(event)">
-        <div class="grid grid-2">
-            <div class="form-group">
-                <label>Kind</label>
-                <select name="kind" required>
-                    <option value="mcp" {% if capability and capability.kind == 'mcp' %}selected{% endif %}>MCP</option>
-                    <option value="tool" {% if capability and capability.kind == 'tool' %}selected{% endif %}>Tool</option>
-                    <option value="skill" {% if capability and capability.kind == 'skill' %}selected{% endif %}>Skill</option>
-                </select>
+<div class="grid grid-2">
+    <div class="card">
+        <form id="cap-form" onsubmit="saveCapability(event)">
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label>Kind</label>
+                    <select name="kind" required>
+                        <option value="mcp" {% if capability and capability.kind == 'mcp' %}selected{% endif %}>MCP</option>
+                        <option value="tool" {% if not capability or capability.kind == 'tool' %}selected{% endif %}>Tool</option>
+                        <option value="skill" {% if capability and capability.kind == 'skill' %}selected{% endif %}>Skill</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select name="type" required>
+                        <option value="tool" {% if not capability or capability.type == 'tool' %}selected{% endif %}>tool</option>
+                        <option value="resource" {% if capability and capability.type == 'resource' %}selected{% endif %}>resource</option>
+                        <option value="workflow" {% if capability and capability.type == 'workflow' %}selected{% endif %}>workflow</option>
+                        <option value="prompt" {% if capability and capability.type == 'prompt' %}selected{% endif %}>prompt</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" name="name" value="{{ capability.name if capability else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Slug</label>
+                    <input type="text" name="slug" value="{{ capability.slug if capability else '' }}"
+                           pattern="[a-z0-9][a-z0-9\-]*" required {% if capability %}readonly{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label>Source Type</label>
+                    <select name="source_type" required>
+                        <option value="custom" {% if not capability or capability.source_type == 'custom' %}selected{% endif %}>custom</option>
+                        <option value="builtin" {% if capability and capability.source_type == 'builtin' %}selected{% endif %}>builtin</option>
+                        <option value="plugin" {% if capability and capability.source_type == 'plugin' %}selected{% endif %}>plugin</option>
+                        <option value="mcp_server" {% if capability and capability.source_type == 'mcp_server' %}selected{% endif %}>mcp_server</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Source ID</label>
+                    <input type="text" name="source_id" value="{{ capability.source_id if capability and capability.source_id else '' }}">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" name="category" value="{{ capability.category if capability and capability.category else '' }}">
+                </div>
+                <div class="form-group">
+                    <label>Version</label>
+                    <input type="text" name="version" value="{{ capability.version if capability else '0.1.0' }}">
+                </div>
+                <div class="form-group">
+                    <label>Visibility</label>
+                    <select name="visibility">
+                        <option value="public" {% if not capability or capability.visibility == 'public' %}selected{% endif %}>Public</option>
+                        <option value="private" {% if capability and capability.visibility == 'private' %}selected{% endif %}>Private</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Schema Status</label>
+                    <input type="text" name="schema_status" value="{{ capability.schema_status if capability and capability.schema_status else '' }}" placeholder="valid / invalid / unknown">
+                </div>
             </div>
             <div class="form-group">
-                <label>Name</label>
-                <input type="text" name="name" value="{{ capability.name if capability else '' }}"
-                       placeholder="e.g. My Web Fetch" required>
+                <label>Description</label>
+                <textarea name="description" rows="3">{{ capability.description if capability and capability.description else '' }}</textarea>
             </div>
             <div class="form-group">
-                <label>Slug</label>
-                <input type="text" name="slug" value="{{ capability.slug if capability else '' }}"
-                       pattern="[a-z0-9][a-z0-9\-]*"
-                       placeholder="e.g. my-web-fetch (lowercase, dashes only)"
-                       required {% if capability %}readonly{% endif %}>
+                <label>Tags (comma separated)</label>
+                <input type="text" name="tags" value="{{ capability.tags | join(', ') if capability and capability.tags else '' }}" placeholder="search, network, weather">
             </div>
             <div class="form-group">
-                <label>Category</label>
-                <input type="text" name="category" value="{{ capability.category if capability and capability.category else '' }}"
-                       placeholder="e.g. network, search, file">
+                <label>Input Schema (JSON)</label>
+                <textarea name="input_schema" rows="5">{{ capability.input_schema | tojson(indent=2) if capability and capability.input_schema else '{}' }}</textarea>
             </div>
             <div class="form-group">
-                <label>Version</label>
-                <input type="text" name="version" value="{{ capability.version if capability else '0.1.0' }}"
-                       placeholder="e.g. 0.1.0">
+                <label>Output Schema (JSON)</label>
+                <textarea name="output_schema" rows="5">{{ capability.output_schema | tojson(indent=2) if capability and capability.output_schema else '{}' }}</textarea>
             </div>
             <div class="form-group">
-                <label>Visibility</label>
-                <select name="visibility">
-                    <option value="public" {% if capability and capability.visibility == 'public' %}selected{% endif %}>Public</option>
-                    <option value="private" {% if capability and capability.visibility == 'private' %}selected{% endif %}>Private</option>
-                </select>
+                <label>Config Schema (JSON)</label>
+                <textarea name="config_schema" rows="5">{{ capability.config_schema | tojson(indent=2) if capability and capability.config_schema else '{}' }}</textarea>
             </div>
+            <div class="form-group">
+                <label>Connection Config (JSON)</label>
+                <textarea name="connection_config" rows="6">{{ capability.connection_config | tojson(indent=2) if capability and capability.connection_config else '{}' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>Metadata (JSON)</label>
+                <textarea name="metadata" rows="4">{{ capability.metadata | tojson(indent=2) if capability and capability.metadata else '{}' }}</textarea>
+            </div>
+            <div class="flex flex-gap mt-2">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="/capabilities" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    {% if capability %}
+    <div class="card">
+        <h3>Quick Actions</h3>
+        <div class="flex flex-gap mb-2">
+            <button class="btn btn-outline btn-sm" onclick="validateCapability()">Validate</button>
+            <button class="btn btn-outline btn-sm" onclick="healthcheckCapability()">Health Check</button>
+            <button class="btn btn-outline btn-sm" onclick="runCapabilityTest()">Run Test</button>
         </div>
         <div class="form-group">
-            <label>Description</label>
-            <textarea name="description" rows="3"
-                      placeholder="Describe what this capability does...">{{ capability.description if capability and capability.description else '' }}</textarea>
+            <label>Test Request Payload (JSON)</label>
+            <textarea id="test-payload" rows="5">{
+  "expression": "2 + 2"
+}</textarea>
         </div>
-        <div class="form-group">
-            <label>Connection Config (JSON)</label>
-            <textarea name="connection_config" rows="5"
-                      placeholder='{"transport": "sse", "endpoint_url": "https://example.com/sse"}'>{{ capability.connection_config | tojson(indent=2) if capability else '{}' }}</textarea>
-        </div>
-        <div class="form-group">
-            <label>Config Schema (JSON)</label>
-            <textarea name="config_schema" rows="5"
-                      placeholder='{"type": "object", "properties": {"api_key": {"type": "string"}}}'>{{ capability.config_schema | tojson(indent=2) if capability else '{}' }}</textarea>
-        </div>
-        <div class="flex flex-gap mt-2">
-            <button type="submit" class="btn btn-primary">Save</button>
-            <a href="/capabilities" class="btn btn-outline">Cancel</a>
-        </div>
-    </form>
+        <pre id="action-result" style="white-space:pre-wrap;">No action yet.</pre>
+    </div>
+    {% endif %}
 </div>
 
 <script>
+function parseJsonField(name, value) {
+    try {
+        return JSON.parse(value || '{}');
+    } catch (e) {
+        throw new Error(`${name} JSON parse failed: ${e.message}`);
+    }
+}
+
+function buildCapabilityPayload(form) {
+    const tags = (form.tags.value || '')
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean);
+
+    return {
+        kind: form.kind.value,
+        type: form.type.value,
+        name: form.name.value,
+        slug: form.slug.value,
+        source_type: form.source_type.value,
+        source_id: form.source_id.value || null,
+        category: form.category.value || null,
+        version: form.version.value || '0.1.0',
+        visibility: form.visibility.value,
+        schema_status: form.schema_status.value || null,
+        description: form.description.value || null,
+        tags,
+        input_schema: parseJsonField('input_schema', form.input_schema.value),
+        output_schema: parseJsonField('output_schema', form.output_schema.value),
+        config_schema: parseJsonField('config_schema', form.config_schema.value),
+        connection_config: parseJsonField('connection_config', form.connection_config.value),
+        metadata: parseJsonField('metadata', form.metadata.value),
+    };
+}
+
 async function saveCapability(e) {
     e.preventDefault();
     const form = e.target;
-    const data = {
-        kind: form.kind.value,
-        name: form.name.value,
-        slug: form.slug.value,
-        category: form.category.value || null,
-        version: form.version.value,
-        visibility: form.visibility.value,
-        description: form.description.value || null,
-        connection_config: JSON.parse(form.connection_config.value || '{}'),
-        config_schema: JSON.parse(form.config_schema.value || '{}'),
-    };
-    const capId = "{{ capability.id if capability else '' }}";
-    const url = capId ? `/api/capabilities/${capId}` : '/api/capabilities';
-    const method = capId ? 'PUT' : 'POST';
-    const resp = await fetch(url, {
-        method,
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data),
-    });
-    if (resp.ok) {
-        window.location.href = '/capabilities';
-    } else {
+    try {
+        const data = buildCapabilityPayload(form);
+        const capId = "{{ capability.id if capability else '' }}";
+        const url = capId ? `/api/capabilities/${capId}` : '/api/capabilities';
+        const method = capId ? 'PUT' : 'POST';
+        const resp = await fetch(url, {
+            method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data),
+        });
+        if (resp.ok) {
+            window.location.href = '/capabilities';
+            return;
+        }
         const err = await resp.json();
         alert('Error: ' + (err.detail || JSON.stringify(err)));
+    } catch (e) {
+        alert(e.message || String(e));
     }
+}
+
+function setActionResult(payload) {
+    const target = document.getElementById('action-result');
+    if (!target) return;
+    target.textContent = JSON.stringify(payload, null, 2);
+}
+
+async function validateCapability() {
+    const capId = "{{ capability.id if capability else '' }}";
+    const resp = await fetch('/api/capabilities/validate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({capability_id: capId}),
+    });
+    setActionResult(await resp.json());
+}
+
+async function healthcheckCapability() {
+    const capId = "{{ capability.id if capability else '' }}";
+    const resp = await fetch(`/api/capabilities/${capId}/healthcheck`, {method: 'POST'});
+    setActionResult(await resp.json());
+}
+
+async function runCapabilityTest() {
+    const capId = "{{ capability.id if capability else '' }}";
+    let requestPayload = {};
+    try {
+        requestPayload = JSON.parse(document.getElementById('test-payload').value || '{}');
+    } catch (e) {
+        alert('Invalid test payload JSON: ' + e.message);
+        return;
+    }
+    const resp = await fetch(`/api/capabilities/${capId}/test`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({request_payload: requestPayload}),
+    });
+    setActionResult(await resp.json());
 }
 </script>
 {% endblock %}

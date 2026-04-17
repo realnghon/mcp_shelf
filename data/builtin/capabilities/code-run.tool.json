@@ -1,0 +1,57 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "Code Run",
+  "slug": "code-run",
+  "description": "Execute python or powershell script.",
+  "category": "agent-core",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "script": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "python",
+          "powershell"
+        ]
+      },
+      "timeout": {
+        "type": "integer"
+      },
+      "cwd": {
+        "type": "string"
+      },
+      "inline_eval": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "script"
+    ]
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "code_run"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

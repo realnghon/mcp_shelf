@@ -1,5 +1,138 @@
 {% extends "base.html" %}
 {% block title %}Capabilities - MCP Shelf{% endblock %}
+{% block head %}
+<style>
+    .cap-layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 1rem;
+        align-items: start;
+    }
+    .cap-sidebar {
+        position: sticky;
+        top: 72px;
+        padding: 0.8rem;
+    }
+    .cap-side-title {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin: 0.25rem 0 0.65rem;
+        font-weight: 700;
+    }
+    .cat-pill {
+        width: 100%;
+        border: 1px solid transparent;
+        background: color-mix(in srgb, var(--surface2) 80%, transparent);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 0.4rem 0.65rem;
+        margin-bottom: 0.45rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: 0.15s ease;
+    }
+    .cat-pill:hover {
+        border-color: var(--border-hover);
+        transform: translateX(2px);
+    }
+    .cat-pill.active {
+        background: color-mix(in srgb, var(--primary) 22%, var(--surface2));
+        border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+        color: #fff;
+    }
+    .cat-pill .count {
+        border-radius: 999px;
+        padding: 0.1rem 0.45rem;
+        font-size: 0.68rem;
+        background: color-mix(in srgb, var(--surface3) 70%, transparent);
+        color: var(--text-dim);
+    }
+    .cat-pill.active .count {
+        background: color-mix(in srgb, #fff 16%, transparent);
+        color: #fff;
+    }
+
+    .bubble-filter-card {
+        padding: 1rem;
+        border-radius: 18px;
+        background: linear-gradient(165deg, color-mix(in srgb, var(--surface2) 76%, transparent), var(--surface));
+    }
+    .bubble-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.45rem;
+    }
+    .bubble-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        font-weight: 700;
+    }
+    .bubble-pill {
+        border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+        background: color-mix(in srgb, var(--surface2) 76%, transparent);
+        color: var(--text-dim);
+        border-radius: 999px;
+        padding: 0.42rem 0.78rem;
+        cursor: pointer;
+        font-size: 0.82rem;
+        transition: 0.15s ease;
+    }
+    .bubble-pill:hover {
+        border-color: var(--border-hover);
+        color: var(--text);
+        transform: translateY(-1px);
+    }
+    .bubble-pill.active {
+        color: #fff;
+        background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 86%, #6b7bff), var(--primary-hover));
+        border-color: color-mix(in srgb, var(--primary) 70%, #90a2ff);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 28%, transparent);
+    }
+    .search-wrap {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 0.6rem;
+        align-items: center;
+        margin-bottom: 0.8rem;
+    }
+    .search-wrap input {
+        border-radius: 999px;
+        padding-left: 1rem;
+        background: color-mix(in srgb, var(--surface2) 86%, transparent);
+    }
+    .shelf-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    @media (max-width: 1100px) {
+        .cap-layout {
+            grid-template-columns: 1fr;
+        }
+        .cap-sidebar {
+            position: static;
+        }
+    }
+    @media (max-width: 900px) {
+        .shelf-grid {
+            grid-template-columns: 1fr;
+        }
+        .search-wrap {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="flex flex-between mb-2">
     <div>
@@ -9,39 +142,122 @@
     <a href="/capabilities/new" class="btn btn-primary">+ Add New</a>
 </div>
 
-<div class="grid grid-3" id="capability-shelf">
-    {% for cap in capabilities %}
-    <div class="card shelf-item" data-kind="{{ cap.kind }}" style="display:flex;flex-direction:column;gap:0.75rem;">
-        <div class="flex flex-between">
-            <div>
-                <a href="/capabilities/{{ cap.id }}" style="font-weight:600;font-size:0.95rem;text-decoration:none;color:var(--text);">{{ cap.name }}</a>
-                <div class="text-xs text-dim">{{ cap.slug }}</div>
+<div class="cap-layout">
+    <aside class="card cap-sidebar">
+        <div class="cap-side-title">Categories</div>
+        <button type="button"
+                class="cat-pill {% if not filters.category %}active{% endif %}"
+                onclick="selectCategory('')">
+            <span>All</span>
+            <span class="count">{{ all_total }}</span>
+        </button>
+        {% for item in categories %}
+        <button type="button"
+                class="cat-pill {% if filters.category == item.name %}active{% endif %}"
+                onclick='selectCategory({{ item.name | tojson }})'>
+            <span>{{ item.name }}</span>
+            <span class="count">{{ item.count }}</span>
+        </button>
+        {% endfor %}
+    </aside>
+
+    <section>
+        <div class="card bubble-filter-card">
+            <form method="get" id="cap-filter-form">
+                <input type="hidden" name="kind" id="input-kind" value="{{ filters.kind }}">
+                <input type="hidden" name="status" id="input-status" value="{{ filters.status }}">
+                <input type="hidden" name="sort_by" id="input-sort-by" value="{{ filters.sort_by }}">
+                <input type="hidden" name="sort_order" id="input-sort-order" value="{{ filters.sort_order }}">
+                <input type="hidden" name="category" id="input-category" value="{{ filters.category }}">
+
+                <div class="search-wrap">
+                    <input type="text" name="search" value="{{ filters.search }}" placeholder="Search by name or description">
+                    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                    <a href="/capabilities" class="btn btn-outline btn-sm">Reset</a>
+                </div>
+
+                <div class="bubble-label">Kind</div>
+                <div class="bubble-row">
+                    <button type="button" class="bubble-pill {% if not filters.kind %}active{% endif %}" onclick="setFilter('kind', '')">All</button>
+                    <button type="button" class="bubble-pill {% if filters.kind == 'mcp' %}active{% endif %}" onclick="setFilter('kind', 'mcp')">MCP</button>
+                    <button type="button" class="bubble-pill {% if filters.kind == 'tool' %}active{% endif %}" onclick="setFilter('kind', 'tool')">Tool</button>
+                    <button type="button" class="bubble-pill {% if filters.kind == 'skill' %}active{% endif %}" onclick="setFilter('kind', 'skill')">Skill</button>
+                </div>
+
+                <div class="bubble-label mt-1">Status</div>
+                <div class="bubble-row">
+                    <button type="button" class="bubble-pill {% if not filters.status %}active{% endif %}" onclick="setFilter('status', '')">All</button>
+                    <button type="button" class="bubble-pill {% if filters.status == 'active' %}active{% endif %}" onclick="setFilter('status', 'active')">Active</button>
+                    <button type="button" class="bubble-pill {% if filters.status == 'inactive' %}active{% endif %}" onclick="setFilter('status', 'inactive')">Inactive</button>
+                </div>
+
+                <div class="bubble-label mt-1">Sort</div>
+                <div class="bubble-row">
+                    <button type="button" class="bubble-pill {% if filters.sort_by == 'updated_at' %}active{% endif %}" onclick="setFilter('sort_by', 'updated_at')">Updated</button>
+                    <button type="button" class="bubble-pill {% if filters.sort_by == 'created_at' %}active{% endif %}" onclick="setFilter('sort_by', 'created_at')">Created</button>
+                    <button type="button" class="bubble-pill {% if filters.sort_by == 'name' %}active{% endif %}" onclick="setFilter('sort_by', 'name')">Name</button>
+                    <button type="button" class="bubble-pill {% if filters.sort_by == 'version' %}active{% endif %}" onclick="setFilter('sort_by', 'version')">Version</button>
+                    <button type="button" class="bubble-pill {% if filters.sort_by == 'schema_status' %}active{% endif %}" onclick="setFilter('sort_by', 'schema_status')">Schema</button>
+                    <button type="button" class="bubble-pill {% if filters.sort_by == 'last_test_status' %}active{% endif %}" onclick="setFilter('sort_by', 'last_test_status')">Test</button>
+                </div>
+
+                <div class="bubble-label mt-1">Order</div>
+                <div class="bubble-row">
+                    <button type="button" class="bubble-pill {% if filters.sort_order == 'desc' %}active{% endif %}" onclick="setFilter('sort_order', 'desc')">DESC</button>
+                    <button type="button" class="bubble-pill {% if filters.sort_order == 'asc' %}active{% endif %}" onclick="setFilter('sort_order', 'asc')">ASC</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="shelf-grid" id="capability-shelf">
+            {% for cap in capabilities %}
+            <div class="card shelf-item" data-kind="{{ cap.kind }}" style="display:flex;flex-direction:column;gap:0.75rem;">
+                <div class="flex flex-between">
+                    <div>
+                        <a href="/capabilities/{{ cap.id }}" style="font-weight:600;font-size:0.95rem;text-decoration:none;color:var(--text);">{{ cap.name }}</a>
+                        <div class="text-xs text-dim">{{ cap.slug }}</div>
+                    </div>
+                    <span class="badge badge-{{ cap.status }}">{{ cap.status }}</span>
+                </div>
+
+                <p class="text-sm text-dim" style="flex:1;">{{ cap.description or 'No description' }}</p>
+
+                <div class="flex flex-gap" style="flex-wrap: wrap;">
+                    <span class="badge badge-{{ cap.kind }}">{{ cap.kind }}</span>
+                    <span class="badge">{{ cap.type }}</span>
+                    <span class="badge">{{ cap.source_type }}</span>
+                    {% if cap.schema_status %}<span class="badge">schema: {{ cap.schema_status }}</span>{% endif %}
+                    {% if cap.last_test_status %}<span class="badge">test: {{ cap.last_test_status }}</span>{% endif %}
+                </div>
+
+                <div class="text-xs text-dim">
+                    <div>Category: {{ cap.category or 'uncategorized' }}</div>
+                    <div>Version: {{ cap.version }}</div>
+                </div>
             </div>
-            <span class="badge badge-{{ cap.status }}">{{ cap.status }}</span>
+            {% endfor %}
+
+            {% if not capabilities %}
+            <div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-dim);">
+                <p>No capabilities registered yet.</p>
+                <a href="/capabilities/new" class="btn btn-primary btn-sm mt-2">Add your first one</a>
+            </div>
+            {% endif %}
         </div>
-
-        <p class="text-sm text-dim" style="flex:1;">{{ cap.description or 'No description' }}</p>
-
-        <div class="flex flex-gap" style="flex-wrap: wrap;">
-            <span class="badge badge-{{ cap.kind }}">{{ cap.kind }}</span>
-            <span class="badge">{{ cap.type }}</span>
-            <span class="badge">{{ cap.source_type }}</span>
-            {% if cap.schema_status %}<span class="badge">schema: {{ cap.schema_status }}</span>{% endif %}
-            {% if cap.last_test_status %}<span class="badge">test: {{ cap.last_test_status }}</span>{% endif %}
-        </div>
-
-        <div class="text-xs text-dim">
-            <div>Category: {{ cap.category or 'uncategorized' }}</div>
-            <div>Version: {{ cap.version }}</div>
-        </div>
-    </div>
-    {% endfor %}
-
-    {% if not capabilities %}
-    <div style="grid-column:1/-1;text-align:center;padding:3rem 0;color:var(--text-dim);">
-        <p>No capabilities registered yet.</p>
-        <a href="/capabilities/new" class="btn btn-primary btn-sm mt-2">Add your first one</a>
-    </div>
-    {% endif %}
+    </section>
 </div>
+
+<script>
+function setFilter(field, value) {
+    const input = document.getElementById(`input-${field.replace('_', '-')}`);
+    if (!input) return;
+    input.value = value;
+    document.getElementById('cap-filter-form').submit();
+}
+
+function selectCategory(category) {
+    document.getElementById('input-category').value = category;
+    document.getElementById('cap-filter-form').submit();
+}
+</script>
 {% endblock %}

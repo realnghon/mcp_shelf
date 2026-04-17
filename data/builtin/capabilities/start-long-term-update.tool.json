@@ -1,0 +1,34 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "Start Long Term Update",
+  "slug": "start-long-term-update",
+  "description": "Archive working checkpoint into long-term memory.",
+  "category": "memory",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "start_long_term_update"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

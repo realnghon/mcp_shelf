@@ -1,5 +1,7 @@
 """Page routes - serve Jinja2 rendered HTML pages."""
 
+from collections import Counter
+
 from fastapi import APIRouter, Request
 
 from app.core.config import settings
@@ -36,12 +38,53 @@ async def index(request: Request):
 
 
 @router.get("/capabilities")
-async def capabilities_page(request: Request):
-    items, total = await reg_svc.list_capabilities(page_size=100, include_builtin=True)
+async def capabilities_page(
+    request: Request,
+    kind: str | None = None,
+    status: str | None = None,
+    category: str | None = None,
+    search: str | None = None,
+    sort_by: str = "updated_at",
+    sort_order: str = "desc",
+):
+    items, total = await reg_svc.list_capabilities(
+        page_size=100,
+        include_builtin=True,
+        kind=kind,
+        status=status,
+        category=category,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+    all_items, _ = await reg_svc.list_capabilities(
+        page_size=500,
+        include_builtin=True,
+        sort_by="name",
+        sort_order="asc",
+    )
+    category_counter = Counter(
+        (str(cap.get("category") or "uncategorized").strip() or "uncategorized")
+        for cap in all_items
+    )
+    categories = [
+        {"name": name, "count": count}
+        for name, count in sorted(category_counter.items(), key=lambda pair: pair[0].lower())
+    ]
     return templates.TemplateResponse(request, "capabilities/list.html", {
         "request": request,
         "capabilities": items,
         "total": total,
+        "categories": categories,
+        "all_total": len(all_items),
+        "filters": {
+            "kind": kind or "",
+            "status": status or "",
+            "category": category or "",
+            "search": search or "",
+            "sort_by": sort_by,
+            "sort_order": sort_order,
+        },
     })
 
 
@@ -89,14 +132,25 @@ async def bindings_page(request: Request):
     })
 
 
+@router.get("/bindings/new")
+async def new_binding_page(request: Request):
+    return templates.TemplateResponse(request, "bindings/form.html", {
+        "request": request,
+        "binding": None,
+        "available_capabilities": [],
+    })
+
+
 @router.get("/bindings/{binding_id}")
 async def binding_detail_page(request: Request, binding_id: str):
     binding = await bind_svc.get_binding(binding_id)
     if not binding:
         return templates.TemplateResponse(request, "index.html", {"request": request, "error": "Not found"})
+    available_capabilities, _ = await reg_svc.list_capabilities(page_size=200, include_builtin=False)
     return templates.TemplateResponse(request, "bindings/form.html", {
         "request": request,
         "binding": binding,
+        "available_capabilities": available_capabilities,
     })
 
 
@@ -124,4 +178,11 @@ async def settings_page(request: Request):
     return templates.TemplateResponse(request, "settings.html", {
         "request": request,
         "llm_configs": configs,
+    })
+
+
+@router.get("/ops")
+async def ops_page(request: Request):
+    return templates.TemplateResponse(request, "ops.html", {
+        "request": request,
     })

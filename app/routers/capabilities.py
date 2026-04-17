@@ -18,12 +18,14 @@ async def list_capabilities(
     status: str | None = None,
     category: str | None = None,
     search: str | None = None,
+    sort_by: str = "updated_at",
+    sort_order: str = "desc",
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
     items, total = await svc.list_capabilities(
         kind=kind, status=status, category=category, search=search,
-        page=page, page_size=page_size,
+        sort_by=sort_by, sort_order=sort_order, page=page, page_size=page_size,
     )
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 

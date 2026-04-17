@@ -53,7 +53,8 @@ class AuditRepo:
         data_sql = f"SELECT * FROM audit_logs {where} ORDER BY created_at DESC LIMIT ? OFFSET ?"
 
         cursor = await db.execute(count_sql, params)
-        total = (await cursor.fetchone())[0]
+        count_row = await cursor.fetchone()
+        total = int(count_row[0]) if count_row else 0
         cursor = await db.execute(data_sql, params + [page_size, (page - 1) * page_size])
         rows = await cursor.fetchall()
         results = []

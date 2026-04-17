@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Operations - MCP Shelf{% endblock %}
+{% block content %}
+<div class="flex flex-between mb-2">
+    <div>
+        <h1>Operations</h1>
+        <p class="text-dim text-sm">Health summary, audit logs, and marketplace import tools</p>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h3>Health Summary</h3>
+        <div id="health-summary" class="text-sm text-dim">Loading...</div>
+    </div>
+
+    <div class="card">
+        <h3>Recent Audit Logs</h3>
+        <div id="audit-logs" class="text-sm text-dim">Loading...</div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h3>Marketplace Capabilities</h3>
+        <div id="market-capabilities" class="text-sm text-dim">Loading...</div>
+    </div>
+
+    <div class="card">
+        <h3>Marketplace Bindings</h3>
+        <div id="market-bindings" class="text-sm text-dim">Loading...</div>
+    </div>
+</div>
+
+<script>
+let marketplaceCapabilities = [];
+let marketplaceBindings = [];
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text ?? '';
+    return div.innerHTML;
+}
+
+function pretty(obj) {
+    return `<pre style="white-space:pre-wrap;">${escapeHtml(JSON.stringify(obj, null, 2))}</pre>`;
+}
+
+async function importCapability(item) {
+    const resp = await fetch('/api/import/capability', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(item),
+    });
+    if (!resp.ok) {
+        const err = await resp.json();
+        alert(err.detail || 'Import failed');
+        return;
+    }
+    alert('Capability imported');
+}
+
+async function importBinding(item) {
+    const resp = await fetch('/api/import/binding', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(item),
+    });
+    if (!resp.ok) {
+        const err = await resp.json();
+        alert(err.detail || 'Import failed');
+        return;
+    }
+    alert('Binding imported');
+}
+
+async function loadHealthSummary() {
+    const target = document.getElementById('health-summary');
+    const resp = await fetch('/api/health/summary');
+    if (!resp.ok) {
+        target.textContent = 'Failed to load health summary';
+        return;
+    }
+    const items = await resp.json();
+    marketplaceCapabilities = items;
+    if (!items.length) {
+        target.textContent = 'No health data yet.';
+        return;
+    }
+    target.innerHTML = `
+        <table>
+            <thead><tr><th>Capability</th><th>Health</th><th>Discovery</th></tr></thead>
+            <tbody>
+                ${items.map(item => `
+                    <tr>
+                        <td>${escapeHtml(item.name || item.slug || item.id)}</td>
+                        <td>${escapeHtml(item.health_status || '-')}</td>
+                        <td>${escapeHtml(item.discovery_status || '-')}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>`;
+}
+
+async function loadAuditLogs() {
+    const target = document.getElementById('audit-logs');
+    const resp = await fetch('/api/audit?page_size=20');
+    if (!resp.ok) {
+        target.textContent = 'Failed to load audit logs';
+        return;
+    }
+    const payload = await resp.json();
+    const items = payload.items || [];
+    if (!items.length) {
+        target.textContent = 'No audit logs yet.';
+        return;
+    }
+    target.innerHTML = `
+        <table>
+            <thead><tr><th>Action</th><th>Target</th><th>At</th></tr></thead>
+            <tbody>
+                ${items.map(item => `
+                    <tr>
+                        <td>${escapeHtml(item.action || '-')}</td>
+                        <td>${escapeHtml(`${item.target_type || '-'}:${item.target_id || '-'}`)}</td>
+                        <td>${escapeHtml(item.created_at || '-')}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>`;
+}
+
+async function loadMarketplaceCapabilities() {
+    const target = document.getElementById('market-capabilities');
+    const resp = await fetch('/api/marketplace/capabilities');
+    if (!resp.ok) {
+        target.textContent = 'Failed to load capability templates';
+        return;
+    }
+    const items = await resp.json();
+    if (!items.length) {
+        target.textContent = 'No capability templates found.';
+        return;
+    }
+    target.innerHTML = items.map((item, idx) => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem;margin-bottom:0.5rem;">
+            <div class="flex flex-between">
+                <strong>${escapeHtml(item.name || item.slug || `template-${idx + 1}`)}</strong>
+                <button class="btn btn-outline btn-sm" onclick="importCapability(marketplaceCapabilities[${idx}])">Import</button>
+            </div>
+            <div class="text-xs text-dim mt-1">${escapeHtml(item._file || '')}</div>
+        </div>
+    `).join('');
+}
+
+async function loadMarketplaceBindings() {
+    const target = document.getElementById('market-bindings');
+    const resp = await fetch('/api/marketplace/bindings');
+    if (!resp.ok) {
+        target.textContent = 'Failed to load binding templates';
+        return;
+    }
+    const items = await resp.json();
+    marketplaceBindings = items;
+    if (!items.length) {
+        target.textContent = 'No binding templates found.';
+        return;
+    }
+    target.innerHTML = items.map((item, idx) => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem;margin-bottom:0.5rem;">
+            <div class="flex flex-between">
+                <strong>${escapeHtml(item.name || `binding-${idx + 1}`)}</strong>
+                <button class="btn btn-outline btn-sm" onclick="importBinding(marketplaceBindings[${idx}])">Import</button>
+            </div>
+            <div class="text-xs text-dim mt-1">${escapeHtml(item._file || '')}</div>
+        </div>
+    `).join('');
+}
+
+loadHealthSummary();
+loadAuditLogs();
+loadMarketplaceCapabilities();
+loadMarketplaceBindings();
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "HTTP Fetch",
+  "slug": "http-fetch",
+  "description": "Fetch URL content over HTTP.",
+  "category": "agent-core",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string"
+      },
+      "timeout_s": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "url"
+    ]
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "http_fetch"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

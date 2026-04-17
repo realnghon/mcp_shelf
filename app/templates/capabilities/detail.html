@@ -16,14 +16,21 @@
         </div>
     </div>
     <div class="flex flex-gap">
+        {% if not capability.is_builtin %}
         <a href="/capabilities/{{ capability.id }}/edit" class="btn btn-outline btn-sm">Edit</a>
-        {% if capability.status == 'active' %}
-        <button class="btn btn-outline btn-sm" hx-post="/api/capabilities/{{ capability.id }}/deactivate" hx-swap="none">Deactivate</button>
-        {% else %}
-        <button class="btn btn-success btn-sm" hx-post="/api/capabilities/{{ capability.id }}/activate" hx-swap="none">Activate</button>
         {% endif %}
-        <button class="btn btn-outline btn-sm" hx-post="/api/capabilities/{{ capability.id }}/healthcheck" hx-target="#health-result">Health Check</button>
-        <button class="btn btn-outline btn-sm" hx-post="/api/capabilities/{{ capability.id }}/test" hx-vals='{"request_payload": {}}' hx-target="#test-result">Run Test</button>
+        {% if not capability.is_builtin %}
+        {% if capability.status == 'active' %}
+        <button class="btn btn-outline btn-sm" onclick="toggleStatus(false)">Deactivate</button>
+        {% else %}
+        <button class="btn btn-success btn-sm" onclick="toggleStatus(true)">Activate</button>
+        {% endif %}
+        {% endif %}
+        <button class="btn btn-outline btn-sm" onclick="healthCheck()">Health Check</button>
+        <button class="btn btn-outline btn-sm" onclick="runTest()">Run Test</button>
+        {% if not capability.is_builtin %}
+        <a href="/api/export/capability/{{ capability.id }}" class="btn btn-outline btn-sm">Export JSON</a>
+        {% endif %}
     </div>
 </div>
 
@@ -69,11 +76,23 @@
 
         <div class="card" id="test-result">
             <h3>Latest Test</h3>
+            <div class="form-group">
+                <label>Request Payload (JSON)</label>
+                <textarea id="test-payload" rows="5">{% if capability.input_schema and capability.input_schema.properties %}
+{
+  {% for key, value in capability.input_schema.properties.items() %}"{{ key }}": {% if value.type == 'string' %}"sample"{% elif value.type in ['number', 'integer'] %}0{% elif value.type == 'boolean' %}false{% else %}null{% endif %}{% if not loop.last %},{% endif %}
+  {% endfor %}
+}
+{% else %}
+{}
+{% endif %}</textarea>
+            </div>
             <table>
                 <tr><th>Status</th><td>{{ capability.last_test_status or 'not_run' }}</td></tr>
                 <tr><th>Tested At</th><td>{{ capability.last_tested_at or '-' }}</td></tr>
                 <tr><th>Latency</th><td>{% if capability.last_latency_ms is not none %}{{ capability.last_latency_ms }} ms{% else %}-{% endif %}</td></tr>
             </table>
+            <pre id="test-action-result" class="mt-1" style="white-space:pre-wrap;"></pre>
         </div>
     </div>
 
@@ -86,6 +105,7 @@
         <div class="card" id="health-result">
             <h3>Health Check</h3>
             <p class="text-dim text-sm">Click "Health Check" to test connectivity</p>
+            <pre id="health-action-result" class="mt-1" style="white-space:pre-wrap;"></pre>
         </div>
 
         <div class="card">
@@ -145,4 +165,51 @@
     </table>
 </div>
 {% endif %}
+
+<script>
+async function toggleStatus(activate) {
+    const capId = "{{ capability.id }}";
+    const url = activate
+        ? `/api/capabilities/${capId}/activate`
+        : `/api/capabilities/${capId}/deactivate`;
+    const resp = await fetch(url, {method: 'POST'});
+    if (resp.ok) {
+        location.reload();
+        return;
+    }
+    const err = await resp.json();
+    alert(err.detail || JSON.stringify(err));
+}
+
+async function healthCheck() {
+    const capId = "{{ capability.id }}";
+    const resp = await fetch(`/api/capabilities/${capId}/healthcheck`, {method: 'POST'});
+    const payload = await resp.json();
+    document.getElementById('health-action-result').textContent = JSON.stringify(payload, null, 2);
+    if (resp.ok) {
+        setTimeout(() => location.reload(), 400);
+    }
+}
+
+async function runTest() {
+    const capId = "{{ capability.id }}";
+    let requestPayload = {};
+    try {
+        requestPayload = JSON.parse(document.getElementById('test-payload').value || '{}');
+    } catch (e) {
+        alert('Invalid JSON payload: ' + e.message);
+        return;
+    }
+    const resp = await fetch(`/api/capabilities/${capId}/test`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({request_payload: requestPayload}),
+    });
+    const payload = await resp.json();
+    document.getElementById('test-action-result').textContent = JSON.stringify(payload, null, 2);
+    if (resp.ok) {
+        setTimeout(() => location.reload(), 400);
+    }
+}
+</script>
 {% endblock %}

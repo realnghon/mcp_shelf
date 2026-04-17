@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, cast
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
@@ -20,7 +20,7 @@ async def call_model_node(state: AgentState) -> dict:
         lc_messages = _to_lc_messages(messages)
 
         # Get model
-        model = await get_chat_model(
+        model: Any = await get_chat_model(
             binding_id=state.get("binding_id"),
             model_key_override=state.get("model_key"),
         )
@@ -50,7 +50,7 @@ async def call_model_node(state: AgentState) -> dict:
         }
 
 
-def _to_lc_messages(msg_dicts: list[dict]) -> list:
+def _to_lc_messages(msg_dicts: list[dict[str, Any]]) -> list[Any]:
     """Convert raw message dicts to LangChain message objects."""
     result = []
     for m in msg_dicts:
@@ -61,7 +61,7 @@ def _to_lc_messages(msg_dicts: list[dict]) -> list:
         elif role == "assistant":
             ai_msg = AIMessage(content=content)
             if m.get("tool_calls"):
-                ai_msg.tool_calls = _normalize_tool_calls(m["tool_calls"])
+                setattr(ai_msg, "tool_calls", cast(Any, _normalize_tool_calls(m["tool_calls"])))
             result.append(ai_msg)
         elif role == "tool":
             tool_content = m.get("content")
@@ -77,7 +77,7 @@ def _to_lc_messages(msg_dicts: list[dict]) -> list:
     return result
 
 
-def _lc_message_to_dict(msg) -> dict:
+def _lc_message_to_dict(msg: Any) -> dict[str, Any]:
     """Convert LangChain message to raw dict."""
     if isinstance(msg, AIMessage):
         result = {"role": "assistant", "content": msg.content or ""}

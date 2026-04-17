@@ -49,12 +49,12 @@ class HealthcheckService:
 
             if resp.status_code < 500:
                 status = "ok"
-                detail = f"HTTP {resp.status_code}"
-                discovery_status = "available"
+                discovery_status, discovery_detail = await self._probe_mcp_discovery(endpoint)
+                detail = f"HTTP {resp.status_code}; discovery={discovery_detail}"
             else:
                 status = "degraded"
-                detail = f"HTTP {resp.status_code}"
                 discovery_status = "degraded"
+                detail = f"HTTP {resp.status_code}; discovery probe skipped"
 
             record = await self.health_repo.create(
                 capability_id,
@@ -73,6 +73,38 @@ class HealthcheckService:
 
         await self.audit.log("healthcheck", "capability", capability_id)
         return record
+
+    async def _probe_mcp_discovery(self, endpoint: str) -> tuple[str, str]:
+        """Probe MCP discovery beyond plain connectivity.
+
+        Returns:
+        - discovery_status: available | degraded | unavailable
+        - detail: concise probe result
+        """
+        candidates = [endpoint.rstrip("/"), endpoint.rstrip("/") + "/.well-known/mcp"]
+        try:
+            async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
+                for url in candidates:
+                    resp = await client.get(url)
+                    content_type = (resp.headers.get("content-type") or "").lower()
+                    if resp.status_code >= 500:
+                        continue
+                    if "application/json" in content_type:
+                        body = resp.json() if resp.text else {}
+                        if isinstance(body, dict) and (
+                            "capabilities" in body
+                            or "tools" in body
+                            or "servers" in body
+                        ):
+                            return "available", f"metadata discovered from {url}"
+                        return "degraded", f"json response from {url} without capability metadata"
+                    if "text/event-stream" in content_type:
+                        return "available", f"SSE endpoint detected at {url}"
+                    if resp.status_code < 400:
+                        return "degraded", f"reachable {url} but no MCP metadata"
+            return "unavailable", "no discovery endpoint responded with MCP metadata"
+        except Exception as e:
+            return "unavailable", f"probe error: {e}"
 
     async def get_summary(self) -> list[dict]:
         return await self.health_repo.get_summary()

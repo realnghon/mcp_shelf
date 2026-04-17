@@ -1,4 +1,7 @@
 from langgraph.checkpoint.memory import MemorySaver
+
+import aiosqlite
+
 from app.core.config import settings
 
 
@@ -10,7 +13,6 @@ def get_checkpointer():
     # SQLite checkpointer for lite mode
     try:
         from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-        import aiosqlite
         from pathlib import Path
         from app.core.config import settings as s
 

@@ -1,0 +1,44 @@
+{
+  "kind": "tool",
+  "type": "tool",
+  "name": "Update Working Checkpoint",
+  "slug": "update-working-checkpoint",
+  "description": "Persist short-term working context.",
+  "category": "memory",
+  "tags": [
+    "builtin",
+    "atomic-tool"
+  ],
+  "version": "0.1.0",
+  "visibility": "public",
+  "status": "active",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "key_info": {
+        "type": "string"
+      },
+      "related_sop": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "key_info"
+    ]
+  },
+  "output_schema": {
+    "type": "string"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "runtime": {
+    "transport": "local",
+    "tool_name": "update_working_checkpoint"
+  },
+  "metadata": {
+    "icon": "tool"
+  }
+}

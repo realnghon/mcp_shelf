@@ -53,6 +53,19 @@
                            step="0.1" min="0" max="2" placeholder="0.0 - 2.0, e.g. 0.7">
                 </div>
             </div>
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label>Visibility</label>
+                    <select name="visibility">
+                        <option value="private" {% if not binding or binding.visibility == 'private' %}selected{% endif %}>Private</option>
+                        <option value="public" {% if binding and binding.visibility == 'public' %}selected{% endif %}>Public</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" name="allow_shell" style="width:auto;"
+                                  {% if binding and binding.allow_shell %}checked{% endif %}> Allow shell tool</label>
+                </div>
+            </div>
             <div class="flex flex-gap mt-2">
                 <button type="submit" class="btn btn-primary">Save</button>
                 <a href="/bindings" class="btn btn-outline">Cancel</a>
@@ -63,6 +76,17 @@
     {% if binding %}
     <div class="card">
         <h3>Attached Capabilities</h3>
+        <div class="form-group mt-1">
+            <label>Add Capability</label>
+            <select id="capability-select">
+                <option value="">Select capability...</option>
+                {% for cap in available_capabilities %}
+                <option value="{{ cap.id }}">{{ cap.name }} ({{ cap.kind }} / {{ cap.source_type }})</option>
+                {% endfor %}
+            </select>
+            <textarea id="runtime-overrides" rows="3" class="mt-1" placeholder='runtime_overrides JSON, e.g. {"api_key":"..."}'>{}</textarea>
+            <button class="btn btn-outline btn-sm mt-1" onclick="addCapability()">Add to Binding</button>
+        </div>
         {% for cap in binding.capabilities %}
         <div class="flex flex-between mt-1" style="padding: 0.5rem; background: var(--surface2); border-radius: var(--radius);">
             <div>
@@ -176,6 +200,8 @@ async function saveBinding(e) {
         system_prompt: form.system_prompt.value || null,
         max_steps: parseInt(form.max_steps.value) || 8,
         temperature: form.temperature.value ? parseFloat(form.temperature.value) : null,
+        visibility: form.visibility.value,
+        allow_shell: !!form.allow_shell.checked,
     };
     const bindId = "{{ binding.id if binding else '' }}";
     const url = bindId ? `/api/bindings/${bindId}` : '/api/bindings';
@@ -191,6 +217,35 @@ async function saveBinding(e) {
         const err = await resp.json();
         alert('Error: ' + (err.detail || JSON.stringify(err)));
     }
+}
+
+async function addCapability() {
+    const bindId = "{{ binding.id if binding else '' }}";
+    const capId = document.getElementById('capability-select').value;
+    if (!bindId || !capId) return;
+    let overrides = {};
+    try {
+        overrides = JSON.parse(document.getElementById('runtime-overrides').value || '{}');
+    } catch (e) {
+        alert('Invalid runtime_overrides JSON: ' + e.message);
+        return;
+    }
+    const resp = await fetch(`/api/bindings/${bindId}/capabilities`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            capability_id: capId,
+            is_enabled: true,
+            mount_order: 0,
+            runtime_overrides: overrides,
+        }),
+    });
+    if (resp.ok) {
+        location.reload();
+        return;
+    }
+    const err = await resp.json();
+    alert(err.detail || JSON.stringify(err));
 }
 </script>
 {% endblock %}
