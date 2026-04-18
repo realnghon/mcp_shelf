@@ -92,7 +92,7 @@ async def get_chat_model(
 def _normalize_base_url(provider: str, base_url: str | None) -> str | None:
     if not base_url:
         return base_url
-    if provider != "openai":
+    if provider not in {"openai", "custom"}:
         return base_url
     normalized = base_url.rstrip("/")
     if normalized.endswith("/v1"):

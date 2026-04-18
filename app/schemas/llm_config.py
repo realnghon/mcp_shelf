@@ -13,6 +13,7 @@ class LLMConfigCreate(BaseModel):
 
 
 class LLMConfigUpdate(BaseModel):
+    provider: str | None = Field(default=None, pattern=r"^(openai|anthropic|custom)$")
     name: str | None = None
     api_key: str | None = None
     base_url: str | None = None

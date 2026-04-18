@@ -5,6 +5,7 @@ from app.core import db as db_module
 from app.core.migrations import run_migrations
 from app.main import app
 from app.repositories.capability_repo import CapabilityRepo
+import app.services.capability_test_service as capability_test_module
 from app.services.capability_test_service import CapabilityTestService
 
 
@@ -66,6 +67,60 @@ async def test_capability_test_service_persists_record_and_updates_capability(tm
         assert len(history) == 1
         assert history[0]["status"] == "failed"
         assert history[0]["request_payload"] == {"expression": "1 + 2"}
+    finally:
+        await db_module.close_db()
+        db_module.settings.app_db_path = original_path
+        db_module._db = None
+
+
+@pytest.mark.asyncio
+async def test_capability_test_service_executes_mcp_tool_when_capability_is_mcp(monkeypatch, tmp_path):
+    db_path = tmp_path / "app.db"
+    original_path = db_module.settings.app_db_path
+    db_module._db = None
+    db_module.settings.app_db_path = str(db_path)
+
+    class _DummyMcpTool:
+        name = "dummy_mcp_echo"
+
+        @staticmethod
+        async def ainvoke(payload):
+            return f"mcp-ok:{payload.get('message', '')}"
+
+    async def _mock_get_mcp_tools(_config):
+        return [_DummyMcpTool()]
+
+    monkeypatch.setattr(capability_test_module, "get_mcp_tools", _mock_get_mcp_tools)
+
+    try:
+        await run_migrations()
+        repo = CapabilityRepo()
+        created = await repo.create(
+            {
+                "kind": "mcp",
+                "name": "Mock MCP Capability",
+                "slug": "mock-mcp-capability",
+                "type": "tool",
+                "source_type": "mcp_server",
+                "source_id": "mcp.mock-mcp-capability",
+                "input_schema": {"type": "object"},
+                "output_schema": {"type": "object"},
+                "connection_config": {
+                    "transport": "streamable_http",
+                    "endpoint_url": "http://localhost:3000/mcp",
+                },
+            }
+        )
+
+        service = CapabilityTestService()
+        result = await service.run_test(
+            capability_id=created["id"],
+            request_payload={"message": "ping"},
+        )
+
+        assert result["status"] == "passed"
+        assert result["capability_id"] == created["id"]
+        assert result["response_payload"] == {"result": "mcp-ok:ping"}
     finally:
         await db_module.close_db()
         db_module.settings.app_db_path = original_path

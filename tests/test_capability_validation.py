@@ -44,6 +44,32 @@ async def test_capability_validation_service_rejects_mcp_server_without_endpoint
 
 
 @pytest.mark.asyncio
+async def test_capability_validation_service_accepts_stdio_mcp_server_with_command():
+    service = CapabilityValidationService()
+
+    result = await service.validate_definition(
+        {
+            "kind": "mcp",
+            "name": "Filesystem MCP",
+            "slug": "filesystem-mcp",
+            "type": "tool",
+            "source_type": "mcp_server",
+            "connection_config": {
+                "transport": "stdio",
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+            },
+            "input_schema": {"type": "object"},
+            "output_schema": {"type": "object"},
+        }
+    )
+
+    assert result["valid"] is True
+    assert result["schema_status"] == "valid"
+    assert result["errors"] == []
+
+
+@pytest.mark.asyncio
 async def test_validate_capability_api_updates_schema_status_for_stored_capability(tmp_path):
     db_path = tmp_path / "app.db"
     original_path = db_module.settings.app_db_path

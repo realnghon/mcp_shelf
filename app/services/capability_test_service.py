@@ -7,6 +7,7 @@ from app.repositories.audit_repo import AuditRepo
 from app.repositories.capability_repo import CapabilityRepo
 from app.repositories.capability_test_repo import CapabilityTestRepo
 from app.runtime.adapters.local_tools import get_capability_tools
+from app.runtime.adapters.mcp import get_mcp_tools
 from app.services.registry_service import RegistryService
 from app.schemas.common import utcnow
 
@@ -29,7 +30,7 @@ class CapabilityTestService:
         error_message: str | None = None
 
         try:
-            tool = self._resolve_single_tool(capability)
+            tool = await self._resolve_single_tool(capability)
             raw_result = await self._invoke_tool(tool, request_payload)
             response_payload = {"result": str(raw_result)}
             status = "passed"
@@ -73,8 +74,16 @@ class CapabilityTestService:
         return await self.test_repo.list_for_capability(capability_id, limit)
 
     @staticmethod
-    def _resolve_single_tool(capability: dict[str, Any]):
-        tools = get_capability_tools(capability, capability.get("connection_config") or {})
+    async def _resolve_single_tool(capability: dict[str, Any]):
+        source_type = str(capability.get("source_type") or "").lower()
+        kind = str(capability.get("kind") or "").lower()
+        config = capability.get("connection_config") or {}
+
+        if source_type == "mcp_server" or kind == "mcp":
+            tools = await get_mcp_tools(config)
+        else:
+            tools = get_capability_tools(capability, config)
+
         if not tools:
             raise ValueError(f"Capability {capability.get('id') or capability.get('slug')} has no executable tool")
         return tools[0]

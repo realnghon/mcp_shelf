@@ -1,5 +1,6 @@
 """MCP adapter - loads tools from MCP servers via langchain-mcp-adapters."""
 
+import json
 import inspect
 from typing import Any
 
@@ -14,31 +15,24 @@ async def get_mcp_tools(connection_config: dict[str, Any]) -> list[Any]:
     - HTTP transport
     - streamable_http transport
     """
-    cache_key = connection_config.get("endpoint_url", "")
+    transport = _normalize_transport(connection_config.get("transport", "http"))
+    cache_key = _build_cache_key(connection_config, transport)
     if cache_key and cache_key in _mcp_tool_cache:
         return _mcp_tool_cache[cache_key]
 
-    transport = _normalize_transport(connection_config.get("transport", "http"))
-    endpoint_url = connection_config.get("endpoint_url", "")
-    headers = connection_config.get("headers_template", {})
-
-    if not endpoint_url:
+    server_cfg = _build_server_config(connection_config, transport)
+    if not server_cfg:
         return []
+
+    endpoint_url = str(connection_config.get("endpoint_url", ""))
+    command = str(connection_config.get("command", ""))
 
     tools = []
 
     try:
         from langchain_mcp_adapters.client import MultiServerMCPClient
 
-        server_config = {
-            "mcp-server": {
-                "url": endpoint_url,
-                "transport": transport,
-            }
-        }
-
-        if headers:
-            server_config["mcp-server"]["headers"] = headers
+        server_config = {"mcp-server": server_cfg}
 
         client = MultiServerMCPClient(server_config)  # type: ignore[arg-type]
         try:
@@ -60,7 +54,8 @@ async def get_mcp_tools(connection_config: dict[str, Any]) -> list[Any]:
         )
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f"Failed to load MCP tools from {endpoint_url}: {e}")
+        target = endpoint_url or command or "<unknown>"
+        logging.getLogger(__name__).warning(f"Failed to load MCP tools from {target}: {e}")
 
     if cache_key and tools:
         _mcp_tool_cache[cache_key] = tools
@@ -80,6 +75,53 @@ def _normalize_transport(raw_transport: str) -> str:
     mapping = {
         "http": "streamable_http",
         "streamable_http": "streamable_http",
+        "streamablehttp": "streamable_http",
         "sse": "sse",
+        "stdio": "stdio",
     }
     return mapping.get((raw_transport or "").lower(), raw_transport)
+
+
+def _build_server_config(connection_config: dict[str, Any], transport: str) -> dict[str, Any] | None:
+    if transport == "stdio":
+        command = str(connection_config.get("command", "")).strip()
+        if not command:
+            return None
+
+        cfg: dict[str, Any] = {
+            "transport": "stdio",
+            "command": command,
+        }
+        args = connection_config.get("args", [])
+        if isinstance(args, list) and args:
+            cfg["args"] = [str(v) for v in args]
+        env = connection_config.get("env", {})
+        if isinstance(env, dict) and env:
+            cfg["env"] = {str(k): str(v) for k, v in env.items()}
+        cwd = str(connection_config.get("cwd", "")).strip()
+        if cwd:
+            cfg["cwd"] = cwd
+        return cfg
+
+    endpoint_url = str(connection_config.get("endpoint_url", "")).strip()
+    if not endpoint_url:
+        return None
+    cfg = {
+        "transport": transport or "streamable_http",
+        "url": endpoint_url,
+    }
+    headers = connection_config.get("headers_template", {})
+    if isinstance(headers, dict) and headers:
+        cfg["headers"] = headers
+    return cfg
+
+
+def _build_cache_key(connection_config: dict[str, Any], transport: str) -> str:
+    if transport == "stdio":
+        command = str(connection_config.get("command", "")).strip()
+        args = connection_config.get("args", [])
+        env = connection_config.get("env", {})
+        return f"stdio:{command}:{json.dumps(args, sort_keys=True)}:{json.dumps(env, sort_keys=True)}"
+    endpoint_url = str(connection_config.get("endpoint_url", "")).strip()
+    headers = connection_config.get("headers_template", {})
+    return f"{transport}:{endpoint_url}:{json.dumps(headers, sort_keys=True)}"

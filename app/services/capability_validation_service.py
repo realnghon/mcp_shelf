@@ -28,9 +28,19 @@ class CapabilityValidationService:
         self._validate_schema_field("config_schema", capability.get("config_schema"), errors, allow_empty=True)
 
         if capability.get("source_type") == "mcp_server":
-            endpoint = (capability.get("connection_config") or {}).get("endpoint_url")
-            if not endpoint:
-                errors.append("connection_config.endpoint_url is required for mcp_server capabilities")
+            connection_config = capability.get("connection_config") or {}
+            transport = str(connection_config.get("transport") or "streamable_http").lower()
+
+            if transport in {"http", "streamable_http", "streamablehttp", "sse"}:
+                endpoint = connection_config.get("endpoint_url")
+                if not endpoint:
+                    errors.append("connection_config.endpoint_url is required for http/sse mcp_server capabilities")
+            elif transport == "stdio":
+                command = connection_config.get("command")
+                if not command:
+                    errors.append("connection_config.command is required for stdio mcp_server capabilities")
+            else:
+                errors.append(f"connection_config.transport '{transport}' is not supported for mcp_server capabilities")
 
         return {
             "valid": len(errors) == 0,

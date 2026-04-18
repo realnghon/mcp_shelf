@@ -1,99 +1,313 @@
 {% extends "base.html" %}
 {% block title %}{% if capability %}Edit{% else %}New{% endif %} Capability - MCP Shelf{% endblock %}
+{% block head %}
+<style>
+    .cap-form-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 1rem;
+        align-items: start;
+    }
+    .cap-form-card {
+        border-radius: 16px;
+        background: linear-gradient(165deg, color-mix(in srgb, var(--surface2) 80%, transparent), var(--surface));
+    }
+    .cap-form-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.9rem;
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, #ffffff 15%);
+    }
+    .cap-form-title {
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 0.5rem;
+    }
+    .help-list {
+        display: grid;
+        gap: 0.35rem;
+    }
+    .help-line {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        font-size: 0.82rem;
+    }
+    .help-line code {
+        background: color-mix(in srgb, var(--surface3) 62%, transparent);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.05rem 0.35rem;
+        font-size: 0.75rem;
+    }
+    .req-tag {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.1rem 0.45rem;
+        font-size: 0.66rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-weight: 700;
+        background: color-mix(in srgb, var(--error) 15%, transparent);
+        color: #ffb3b3;
+        border: 1px solid color-mix(in srgb, var(--error) 45%, var(--border));
+    }
+    .opt-tag {
+        background: color-mix(in srgb, var(--primary) 18%, transparent);
+        color: #c5ccff;
+        border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+    }
+    .example-box {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.85rem;
+    }
+    .transport-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+    .transport-chip {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--surface2) 78%, transparent);
+        color: var(--text-dim);
+        padding: 0.58rem 0.65rem;
+        text-align: center;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .transport-chip.active {
+        color: #fff;
+        border-color: color-mix(in srgb, var(--primary) 58%, var(--border));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 86%, #6b7bff), var(--primary-hover));
+        box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 30%, transparent);
+    }
+    .transport-chip input {
+        display: none;
+    }
+    .field-help {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        margin-top: 0.25rem;
+    }
+    .advanced-wrap details {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--surface2) 65%, transparent);
+    }
+    .advanced-wrap summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 0.7rem 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.86rem;
+        font-weight: 600;
+    }
+    .advanced-wrap summary::-webkit-details-marker {
+        display: none;
+    }
+    .advanced-body {
+        padding: 0.8rem;
+        border-top: 1px solid var(--border);
+    }
+    .mono-area {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.78rem;
+        min-height: 88px;
+    }
+    .quick-card {
+        position: sticky;
+        top: 72px;
+    }
+    .quick-card pre {
+        background: color-mix(in srgb, var(--surface2) 72%, transparent);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.7rem;
+        min-height: 180px;
+        white-space: pre-wrap;
+        font-size: 0.78rem;
+    }
+    @media (max-width: 980px) {
+        .cap-form-layout {
+            grid-template-columns: 1fr;
+        }
+        .quick-card {
+            position: static;
+        }
+    }
+    @media (max-width: 760px) {
+        .transport-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 {% block content %}
-<h1 class="mb-2">{% if capability %}Edit {{ capability.name }}{% else %}New Capability{% endif %}</h1>
+<h1 class="mb-2">{% if capability %}Edit {{ capability.name }}{% else %}New MCP Capability{% endif %}</h1>
 
-<div class="grid grid-2">
-    <div class="card">
+<div class="cap-form-layout">
+    <div class="card cap-form-card">
+        <div class="cap-form-header">
+            <div class="cap-form-title">MCP Setup Guide</div>
+            <div class="help-list">
+                <div class="help-line"><span class="req-tag">Required</span><span><code>Name</code>, <code>Transport</code>, and connection entrypoint.</span></div>
+                <div class="help-line"><span class="req-tag">Required</span><span><code>Command</code> for <code>stdio</code>, or <code>URL</code> for <code>streamable_http/sse</code>.</span></div>
+                <div class="help-line"><span class="req-tag opt-tag">Optional</span><span>Args / Env / Headers / Timeout. Advanced fields are in the collapsed panel.</span></div>
+            </div>
+            <div class="example-box">
+                <button type="button" class="btn btn-outline btn-sm" onclick="applyStdioExample()">Use stdio example</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="applyStreamableHttpExample()">Use streamable HTTP example</button>
+            </div>
+        </div>
+
         <form id="cap-form" onsubmit="saveCapability(event)">
             <div class="grid grid-2">
                 <div class="form-group">
-                    <label>Kind</label>
-                    <select name="kind" required>
-                        <option value="mcp" {% if capability and capability.kind == 'mcp' %}selected{% endif %}>MCP</option>
-                        <option value="tool" {% if not capability or capability.kind == 'tool' %}selected{% endif %}>Tool</option>
-                        <option value="skill" {% if capability and capability.kind == 'skill' %}selected{% endif %}>Skill</option>
-                    </select>
+                    <label>Name <span class="req-tag">Required</span></label>
+                    <input type="text" id="name" name="name" value="{{ capability.name if capability else '' }}" placeholder="e.g. Weather MCP Server" required>
                 </div>
                 <div class="form-group">
-                    <label>Type</label>
-                    <select name="type" required>
-                        <option value="tool" {% if not capability or capability.type == 'tool' %}selected{% endif %}>tool</option>
-                        <option value="resource" {% if capability and capability.type == 'resource' %}selected{% endif %}>resource</option>
-                        <option value="workflow" {% if capability and capability.type == 'workflow' %}selected{% endif %}>workflow</option>
-                        <option value="prompt" {% if capability and capability.type == 'prompt' %}selected{% endif %}>prompt</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" name="name" value="{{ capability.name if capability else '' }}" required>
-                </div>
-                <div class="form-group">
-                    <label>Slug</label>
-                    <input type="text" name="slug" value="{{ capability.slug if capability else '' }}"
-                           pattern="[a-z0-9][a-z0-9\-]*" required {% if capability %}readonly{% endif %}>
-                </div>
-                <div class="form-group">
-                    <label>Source Type</label>
-                    <select name="source_type" required>
-                        <option value="custom" {% if not capability or capability.source_type == 'custom' %}selected{% endif %}>custom</option>
-                        <option value="builtin" {% if capability and capability.source_type == 'builtin' %}selected{% endif %}>builtin</option>
-                        <option value="plugin" {% if capability and capability.source_type == 'plugin' %}selected{% endif %}>plugin</option>
-                        <option value="mcp_server" {% if capability and capability.source_type == 'mcp_server' %}selected{% endif %}>mcp_server</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Source ID</label>
-                    <input type="text" name="source_id" value="{{ capability.source_id if capability and capability.source_id else '' }}">
-                </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <input type="text" name="category" value="{{ capability.category if capability and capability.category else '' }}">
-                </div>
-                <div class="form-group">
-                    <label>Version</label>
-                    <input type="text" name="version" value="{{ capability.version if capability else '0.1.0' }}">
-                </div>
-                <div class="form-group">
-                    <label>Visibility</label>
-                    <select name="visibility">
-                        <option value="public" {% if not capability or capability.visibility == 'public' %}selected{% endif %}>Public</option>
-                        <option value="private" {% if capability and capability.visibility == 'private' %}selected{% endif %}>Private</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Schema Status</label>
-                    <input type="text" name="schema_status" value="{{ capability.schema_status if capability and capability.schema_status else '' }}" placeholder="valid / invalid / unknown">
+                    <label>Slug <span class="req-tag">Required</span></label>
+                    <input
+                        type="text"
+                        id="slug"
+                        name="slug"
+                        value="{{ capability.slug if capability else '' }}"
+                        pattern="[a-z0-9][a-z0-9\\-]*"
+                        placeholder="e.g. weather-mcp"
+                        required
+                        {% if capability %}readonly{% endif %}
+                    >
+                    <p class="field-help">Lowercase letters, numbers, and hyphens only.</p>
                 </div>
             </div>
+
             <div class="form-group">
-                <label>Description</label>
-                <textarea name="description" rows="3">{{ capability.description if capability and capability.description else '' }}</textarea>
+                <label>Description <span class="req-tag opt-tag">Optional</span></label>
+                <textarea id="description" name="description" rows="2" placeholder="What this MCP server provides...">{{ capability.description if capability and capability.description else '' }}</textarea>
             </div>
+
             <div class="form-group">
-                <label>Tags (comma separated)</label>
-                <input type="text" name="tags" value="{{ capability.tags | join(', ') if capability and capability.tags else '' }}" placeholder="search, network, weather">
+                <label>Transport <span class="req-tag">Required</span></label>
+                <div class="transport-row">
+                    <label class="transport-chip" id="chip-stdio">
+                        <input type="radio" name="transport" value="stdio">stdio
+                    </label>
+                    <label class="transport-chip" id="chip-streamable_http">
+                        <input type="radio" name="transport" value="streamable_http">streamable HTTP
+                    </label>
+                    <label class="transport-chip" id="chip-sse">
+                        <input type="radio" name="transport" value="sse">SSE
+                    </label>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Input Schema (JSON)</label>
-                <textarea name="input_schema" rows="5">{{ capability.input_schema | tojson(indent=2) if capability and capability.input_schema else '{}' }}</textarea>
+
+            <div id="stdio-fields" style="display:none;">
+                <div class="form-group">
+                    <label>Command <span class="req-tag">Required</span></label>
+                    <input type="text" id="command" placeholder="e.g. uvx or npx">
+                    <p class="field-help">Executable used to start MCP server process.</p>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Args <span class="req-tag opt-tag">Optional</span></label>
+                        <textarea id="args_text" rows="4" class="mono-area" placeholder="One arg per line, e.g.&#10;-y&#10;@modelcontextprotocol/server-filesystem&#10;C:\\workspace"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Environment Variables <span class="req-tag opt-tag">Optional</span></label>
+                        <textarea id="env_text" rows="4" class="mono-area" placeholder="KEY=value, one per line"></textarea>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Output Schema (JSON)</label>
-                <textarea name="output_schema" rows="5">{{ capability.output_schema | tojson(indent=2) if capability and capability.output_schema else '{}' }}</textarea>
+
+            <div id="http-fields" style="display:none;">
+                <div class="form-group">
+                    <label>URL <span class="req-tag">Required</span></label>
+                    <input type="url" id="endpoint_url" placeholder="e.g. http://localhost:3000/mcp">
+                    <p class="field-help">Use server root MCP endpoint, not docs URL.</p>
+                </div>
+                <div class="form-group">
+                    <label>Headers <span class="req-tag opt-tag">Optional</span></label>
+                    <textarea id="headers_text" rows="4" class="mono-area" placeholder="Content-Type=application/json&#10;Authorization=Bearer token"></textarea>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Config Schema (JSON)</label>
-                <textarea name="config_schema" rows="5">{{ capability.config_schema | tojson(indent=2) if capability and capability.config_schema else '{}' }}</textarea>
+
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label>Timeout (seconds) <span class="req-tag opt-tag">Optional</span></label>
+                    <input type="number" id="timeout_s" min="1" max="600" value="60">
+                </div>
+                <div class="form-group">
+                    <label>Long-running Mode <span class="req-tag opt-tag">Optional</span></label>
+                    <label class="toggle-wrap" style="margin-top: 0.35rem;">
+                        <input type="checkbox" id="long_running_mode" class="toggle">
+                        <span class="text-sm text-dim">Keep server for long sessions</span>
+                    </label>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Connection Config (JSON)</label>
-                <textarea name="connection_config" rows="6">{{ capability.connection_config | tojson(indent=2) if capability and capability.connection_config else '{}' }}</textarea>
+
+            <div class="advanced-wrap mt-2">
+                <details>
+                    <summary>
+                        <span>Advanced Settings</span>
+                        <span class="text-xs text-dim">Optional</span>
+                    </summary>
+                    <div class="advanced-body">
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label>Category</label>
+                                <input type="text" id="category" value="{{ capability.category if capability and capability.category else 'mcp' }}">
+                            </div>
+                            <div class="form-group">
+                                <label>Version</label>
+                                <input type="text" id="version" value="{{ capability.version if capability else '0.1.0' }}">
+                            </div>
+                            <div class="form-group">
+                                <label>Visibility</label>
+                                <select id="visibility">
+                                    <option value="public" {% if not capability or capability.visibility == 'public' %}selected{% endif %}>Public</option>
+                                    <option value="private" {% if capability and capability.visibility == 'private' %}selected{% endif %}>Private</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Source ID</label>
+                                <input type="text" id="source_id" value="{{ capability.source_id if capability and capability.source_id else '' }}" placeholder="auto: mcp.<slug>">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Tags (comma separated)</label>
+                            <input type="text" id="tags" value="{{ capability.tags | join(', ') if capability and capability.tags else '' }}" placeholder="weather, external, production">
+                        </div>
+                        <div class="form-group">
+                            <label>Input Schema (JSON)</label>
+                            <textarea id="input_schema" rows="3" class="mono-area">{{ capability.input_schema | tojson(indent=2) if capability and capability.input_schema else '{"type":"object"}' }}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Output Schema (JSON)</label>
+                            <textarea id="output_schema" rows="3" class="mono-area">{{ capability.output_schema | tojson(indent=2) if capability and capability.output_schema else '{"type":"object"}' }}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Config Schema (JSON)</label>
+                            <textarea id="config_schema" rows="3" class="mono-area">{{ capability.config_schema | tojson(indent=2) if capability and capability.config_schema else '{"type":"object"}' }}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Metadata (JSON)</label>
+                            <textarea id="metadata" rows="3" class="mono-area">{{ capability.metadata | tojson(indent=2) if capability and capability.metadata else '{}' }}</textarea>
+                        </div>
+                    </div>
+                </details>
             </div>
-            <div class="form-group">
-                <label>Metadata (JSON)</label>
-                <textarea name="metadata" rows="4">{{ capability.metadata | tojson(indent=2) if capability and capability.metadata else '{}' }}</textarea>
-            </div>
+
             <div class="flex flex-gap mt-2">
                 <button type="submit" class="btn btn-primary">Save</button>
                 <a href="/capabilities" class="btn btn-outline">Cancel</a>
@@ -102,7 +316,7 @@
     </div>
 
     {% if capability %}
-    <div class="card">
+    <div class="card quick-card">
         <h3>Quick Actions</h3>
         <div class="flex flex-gap mb-2">
             <button class="btn btn-outline btn-sm" onclick="validateCapability()">Validate</button>
@@ -111,59 +325,200 @@
         </div>
         <div class="form-group">
             <label>Test Request Payload (JSON)</label>
-            <textarea id="test-payload" rows="5">{
-  "expression": "2 + 2"
-}</textarea>
+            <textarea id="test-payload" rows="4" class="mono-area">{}</textarea>
         </div>
-        <pre id="action-result" style="white-space:pre-wrap;">No action yet.</pre>
+        <pre id="action-result">No action yet.</pre>
     </div>
     {% endif %}
 </div>
 
 <script>
-function parseJsonField(name, value) {
+const existingCapability = {{ capability | tojson if capability else 'null' }};
+let slugTouched = !!existingCapability;
+
+function slugify(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-');
+}
+
+function parseJsonField(name, value, fallback = {}) {
+    const raw = (value || '').trim();
+    if (!raw) return fallback;
     try {
-        return JSON.parse(value || '{}');
+        return JSON.parse(raw);
     } catch (e) {
         throw new Error(`${name} JSON parse failed: ${e.message}`);
     }
 }
 
-function buildCapabilityPayload(form) {
-    const tags = (form.tags.value || '')
-        .split(',')
-        .map(v => v.trim())
+function parseKeyValueLines(name, raw) {
+    const out = {};
+    const lines = String(raw || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
         .filter(Boolean);
 
+    for (const line of lines) {
+        const idx = line.indexOf('=');
+        if (idx <= 0) {
+            throw new Error(`${name} line must be KEY=value: "${line}"`);
+        }
+        const key = line.slice(0, idx).trim();
+        const val = line.slice(idx + 1).trim();
+        if (!key) {
+            throw new Error(`${name} key cannot be empty`);
+        }
+        out[key] = val;
+    }
+    return out;
+}
+
+function parseArgsLines(raw) {
+    return String(raw || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+}
+
+function formatKeyValueLines(obj) {
+    if (!obj || typeof obj !== 'object') return '';
+    return Object.entries(obj)
+        .map(([k, v]) => `${k}=${v}`)
+        .join('\n');
+}
+
+function setTransport(value) {
+    const radios = document.querySelectorAll('input[name="transport"]');
+    radios.forEach((radio) => {
+        radio.checked = radio.value === value;
+    });
+    syncTransportUi();
+}
+
+function getTransport() {
+    const active = document.querySelector('input[name="transport"]:checked');
+    return active ? active.value : 'streamable_http';
+}
+
+function syncTransportUi() {
+    const transport = getTransport();
+    const showStdio = transport === 'stdio';
+    document.getElementById('stdio-fields').style.display = showStdio ? 'block' : 'none';
+    document.getElementById('http-fields').style.display = showStdio ? 'none' : 'block';
+
+    document.getElementById('command').required = showStdio;
+    document.getElementById('endpoint_url').required = !showStdio;
+
+    ['stdio', 'streamable_http', 'sse'].forEach((name) => {
+        const chip = document.getElementById(`chip-${name}`);
+        if (!chip) return;
+        chip.classList.toggle('active', transport === name);
+    });
+}
+
+function applyStdioExample() {
+    setTransport('stdio');
+    if (!document.getElementById('name').value.trim()) {
+        document.getElementById('name').value = 'Filesystem MCP Server';
+    }
+    if (!document.getElementById('slug').value.trim()) {
+        document.getElementById('slug').value = 'filesystem-mcp';
+    }
+    document.getElementById('command').value = 'npx';
+    document.getElementById('args_text').value = '-y\n@modelcontextprotocol/server-filesystem\nC:\\workspace';
+    document.getElementById('env_text').value = '';
+}
+
+function applyStreamableHttpExample() {
+    setTransport('streamable_http');
+    if (!document.getElementById('name').value.trim()) {
+        document.getElementById('name').value = 'Weather MCP Server';
+    }
+    if (!document.getElementById('slug').value.trim()) {
+        document.getElementById('slug').value = 'weather-mcp';
+    }
+    document.getElementById('endpoint_url').value = 'http://localhost:3000/mcp';
+    document.getElementById('headers_text').value = 'Content-Type=application/json';
+}
+
+function buildConnectionConfig() {
+    const transport = getTransport();
+    const timeoutRaw = document.getElementById('timeout_s').value;
+    const timeout = Number.parseInt(timeoutRaw, 10);
+    const config = {
+        transport,
+        timeout_s: Number.isFinite(timeout) && timeout > 0 ? timeout : 60,
+        long_running_mode: !!document.getElementById('long_running_mode').checked,
+    };
+
+    if (transport === 'stdio') {
+        const command = document.getElementById('command').value.trim();
+        if (!command) {
+            throw new Error('command is required when transport=stdio');
+        }
+        config.command = command;
+        const args = parseArgsLines(document.getElementById('args_text').value);
+        if (args.length) config.args = args;
+        const env = parseKeyValueLines('env', document.getElementById('env_text').value);
+        if (Object.keys(env).length) config.env = env;
+        return config;
+    }
+
+    const endpointUrl = document.getElementById('endpoint_url').value.trim();
+    if (!endpointUrl) {
+        throw new Error('endpoint_url is required for streamable_http/sse');
+    }
+    config.endpoint_url = endpointUrl;
+    const headers = parseKeyValueLines('headers', document.getElementById('headers_text').value);
+    if (Object.keys(headers).length) config.headers_template = headers;
+    return config;
+}
+
+function buildCapabilityPayload() {
+    const name = document.getElementById('name').value.trim();
+    const slug = document.getElementById('slug').value.trim();
+    if (!name) throw new Error('name is required');
+    if (!slug) throw new Error('slug is required');
+
+    const tags = String(document.getElementById('tags').value || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+    const sourceIdInput = document.getElementById('source_id').value.trim();
+
     return {
-        kind: form.kind.value,
-        type: form.type.value,
-        name: form.name.value,
-        slug: form.slug.value,
-        source_type: form.source_type.value,
-        source_id: form.source_id.value || null,
-        category: form.category.value || null,
-        version: form.version.value || '0.1.0',
-        visibility: form.visibility.value,
-        schema_status: form.schema_status.value || null,
-        description: form.description.value || null,
+        kind: 'mcp',
+        type: 'tool',
+        source_type: 'mcp_server',
+        name,
+        slug,
+        description: document.getElementById('description').value.trim() || null,
+        source_id: sourceIdInput || `mcp.${slug}`,
+        category: document.getElementById('category').value.trim() || 'mcp',
+        version: document.getElementById('version').value.trim() || '0.1.0',
+        visibility: document.getElementById('visibility').value || 'public',
+        schema_status: null,
         tags,
-        input_schema: parseJsonField('input_schema', form.input_schema.value),
-        output_schema: parseJsonField('output_schema', form.output_schema.value),
-        config_schema: parseJsonField('config_schema', form.config_schema.value),
-        connection_config: parseJsonField('connection_config', form.connection_config.value),
-        metadata: parseJsonField('metadata', form.metadata.value),
+        input_schema: parseJsonField('input_schema', document.getElementById('input_schema').value, {"type": "object"}),
+        output_schema: parseJsonField('output_schema', document.getElementById('output_schema').value, {"type": "object"}),
+        config_schema: parseJsonField('config_schema', document.getElementById('config_schema').value, {"type": "object"}),
+        connection_config: buildConnectionConfig(),
+        metadata: parseJsonField('metadata', document.getElementById('metadata').value, {}),
     };
 }
 
 async function saveCapability(e) {
     e.preventDefault();
-    const form = e.target;
     try {
-        const data = buildCapabilityPayload(form);
+        const data = buildCapabilityPayload();
         const capId = "{{ capability.id if capability else '' }}";
         const url = capId ? `/api/capabilities/${capId}` : '/api/capabilities';
         const method = capId ? 'PUT' : 'POST';
+
         const resp = await fetch(url, {
             method,
             headers: {'Content-Type': 'application/json'},
@@ -218,5 +573,51 @@ async function runCapabilityTest() {
     });
     setActionResult(await resp.json());
 }
+
+function hydrateFromExisting() {
+    if (!existingCapability) {
+        setTransport('streamable_http');
+        return;
+    }
+
+    const cfg = existingCapability.connection_config || {};
+    const transportRaw = String(cfg.transport || '').toLowerCase();
+    const transport = (transportRaw === 'http' || transportRaw === 'streamablehttp')
+        ? 'streamable_http'
+        : (transportRaw || 'streamable_http');
+    setTransport(transport);
+
+    if (transport === 'stdio') {
+        document.getElementById('command').value = cfg.command || '';
+        document.getElementById('args_text').value = Array.isArray(cfg.args) ? cfg.args.join('\n') : '';
+        document.getElementById('env_text').value = formatKeyValueLines(cfg.env || {});
+    } else {
+        document.getElementById('endpoint_url').value = cfg.endpoint_url || '';
+        document.getElementById('headers_text').value = formatKeyValueLines(cfg.headers_template || {});
+    }
+
+    document.getElementById('timeout_s').value = Number.isFinite(Number(cfg.timeout_s)) ? Number(cfg.timeout_s) : 60;
+    document.getElementById('long_running_mode').checked = !!cfg.long_running_mode;
+}
+
+document.querySelectorAll('input[name="transport"]').forEach((radio) => {
+    radio.addEventListener('change', syncTransportUi);
+});
+
+const nameInput = document.getElementById('name');
+const slugInput = document.getElementById('slug');
+
+nameInput.addEventListener('input', function() {
+    if (slugTouched || !slugInput || slugInput.readOnly) return;
+    slugInput.value = slugify(this.value);
+});
+
+if (slugInput && !slugInput.readOnly) {
+    slugInput.addEventListener('input', () => {
+        slugTouched = true;
+    });
+}
+
+hydrateFromExisting();
 </script>
 {% endblock %}

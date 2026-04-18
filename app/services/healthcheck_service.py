@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.repositories.health_repo import HealthRepo
 from app.repositories.audit_repo import AuditRepo
 from app.runtime.adapters.local_tools import get_capability_tools
+from app.runtime.adapters.mcp import get_mcp_tools
 from app.schemas.common import utcnow
 from app.services.registry_service import RegistryService
 
@@ -77,7 +78,44 @@ class HealthcheckService:
 
     async def _check_mcp(self, cap: dict[str, Any]) -> dict:
         config = cap.get("connection_config") or {}
-        endpoint = config.get("endpoint_url", "")
+        transport = str(config.get("transport") or "streamable_http").lower()
+        endpoint = str(config.get("endpoint_url") or "").strip()
+        command = str(config.get("command") or "").strip()
+
+        if transport == "stdio":
+            if not command:
+                return await self._record_health(
+                    cap=cap,
+                    status="failed",
+                    detail="No command configured for stdio transport",
+                    discovery_status="unavailable",
+                )
+            try:
+                start = time.monotonic()
+                tools = await get_mcp_tools(config)
+                latency_ms = int((time.monotonic() - start) * 1000)
+                if tools:
+                    return await self._record_health(
+                        cap=cap,
+                        status="ok",
+                        latency_ms=latency_ms,
+                        detail=f"stdio MCP loaded {len(tools)} tool(s)",
+                        discovery_status="available",
+                    )
+                return await self._record_health(
+                    cap=cap,
+                    status="degraded",
+                    latency_ms=latency_ms,
+                    detail="stdio MCP reachable but no tools discovered",
+                    discovery_status="degraded",
+                )
+            except Exception as exc:
+                return await self._record_health(
+                    cap=cap,
+                    status="failed",
+                    detail=str(exc),
+                    discovery_status="unavailable",
+                )
 
         if not endpoint:
             return await self._record_health(

@@ -18,11 +18,107 @@ def test_bindings_new_page_exists():
     assert "New Binding" in response.text
 
 
+def test_bindings_form_uses_settings_based_model_options_not_provider_model_dropdowns():
+    with TestClient(app) as client:
+        response = client.get("/bindings/new")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "/api/llm-configs" in html
+    assert 'id="provider-select"' not in html
+    assert 'id="model-select"' not in html
+
+
+def test_binding_detail_page_uses_capability_checkboxes_instead_of_single_select(tmp_path):
+    db_path = tmp_path / "app.db"
+    original_path = db_module.settings.app_db_path
+    db_module._db = None
+    db_module.settings.app_db_path = str(db_path)
+
+    try:
+        async def seed():
+            await run_migrations()
+            cap_repo = CapabilityRepo()
+            bind_repo = BindingRepo()
+            cap = await cap_repo.create(
+                {
+                    "kind": "tool",
+                    "name": "Multi Add Test Capability",
+                    "slug": "multi-add-test-capability",
+                    "type": "tool",
+                    "source_type": "custom",
+                    "input_schema": {"type": "object"},
+                    "output_schema": {"type": "object"},
+                }
+            )
+            binding = await bind_repo.create(
+                {
+                    "name": "Capability Multi Select Binding",
+                    "model_key": "openai:gpt-4.1",
+                }
+            )
+            return binding["id"], cap["id"]
+
+        binding_id, capability_id = asyncio.run(seed())
+
+        with TestClient(app) as client:
+            response = client.get(f"/bindings/{binding_id}")
+
+        assert response.status_code == 200
+        html = response.text
+        assert 'id="capability-select"' not in html
+        assert f'data-capability-id="{capability_id}"' in html
+        assert 'class="capability-add-checkbox"' in html
+    finally:
+        asyncio.run(db_module.close_db())
+        db_module.settings.app_db_path = original_path
+        db_module._db = None
+
+
 def test_ops_page_exists():
     with TestClient(app) as client:
         response = client.get("/ops")
     assert response.status_code == 200
     assert "Operations" in response.text
+
+
+def test_capabilities_new_page_shows_mcp_guided_form():
+    with TestClient(app) as client:
+        response = client.get("/capabilities/new")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "MCP Setup Guide" in html
+    assert "Use stdio example" in html
+    assert "Use streamable HTTP example" in html
+    assert "Advanced Settings" in html
+
+
+def test_index_page_allows_lazy_session_creation_from_send():
+    with TestClient(app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    html = response.text
+    assert 'id="user-input"' in html
+    assert 'id="user-input" placeholder="Type your message..."\n                   onkeydown="if(event.key===\'Enter\'&&!event.shiftKey)sendMessage()"' in html
+    assert 'id="send-btn">Send</button>' in html
+    assert "if (!currentSessionId) {" in html
+    assert "const session = await createSession();" in html
+
+
+def test_index_page_binding_switch_resets_to_new_chat_context():
+    with TestClient(app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "addEventListener('change', onBindingChange)" in html
+    assert "Switching Binding starts a new chat context. Continue?" in html
+    assert "if (!bindingId) {" in html
+    assert "payload.model_key = DEFAULT_MODEL;" in html
+    assert "currentSessionId = null;" in html
+    assert "Send a message to start a new chat with this binding." in html
 
 
 def test_capabilities_category_buttons_render_clickable_onclick():

@@ -45,7 +45,10 @@ async def test_llm_connection(data: dict):
     """Test an LLM configuration by making a simple API call."""
     provider = data.get("provider", "openai")
     api_key = data.get("api_key")
-    base_url = data.get("base_url")
+    base_url = _normalize_openai_compatible_base_url(
+        provider=provider,
+        base_url=data.get("base_url"),
+    )
 
     if not api_key:
         # Try resolving from existing config
@@ -57,7 +60,7 @@ async def test_llm_connection(data: dict):
     try:
         import httpx
         if provider == "openai":
-            url = (base_url or "https://api.openai.com") + "/v1/models"
+            url = (base_url or "https://api.openai.com/v1") + "/models"
             headers = {"Authorization": f"Bearer {api_key}"}
         elif provider == "anthropic":
             url = (base_url or "https://api.anthropic.com") + "/v1/models"
@@ -66,7 +69,7 @@ async def test_llm_connection(data: dict):
                 "anthropic-version": "2023-06-01",
             }
         else:
-            url = base_url + "/v1/models" if base_url else ""
+            url = base_url + "/models" if base_url else ""
             headers = {"Authorization": f"Bearer {api_key}"}
 
         if not url:
@@ -78,3 +81,14 @@ async def test_llm_connection(data: dict):
         return {"ok": resp.status_code < 400, "status_code": resp.status_code}
     except Exception as e:
         return {"ok": False, "detail": str(e)}
+
+
+def _normalize_openai_compatible_base_url(provider: str, base_url: str | None) -> str | None:
+    if not base_url:
+        return base_url
+    if provider not in {"openai", "custom"}:
+        return base_url
+    normalized = base_url.rstrip("/")
+    if normalized.endswith("/v1"):
+        return normalized
+    return f"{normalized}/v1"

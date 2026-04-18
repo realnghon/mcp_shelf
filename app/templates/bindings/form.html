@@ -17,23 +17,17 @@
                           placeholder="Describe what this binding does...">{{ binding.description if binding and binding.description else '' }}</textarea>
             </div>
 
-            <!-- Guided Model Selection -->
             <div class="form-group">
-                <label>Provider</label>
-                <select id="provider-select" onchange="onProviderChange()" style="margin-bottom:0.5rem;">
-                    <option value="openai" {% if binding and binding.model_key and binding.model_key.startswith('openai') %}selected{% endif %}>OpenAI / Compatible</option>
-                    <option value="anthropic" {% if binding and binding.model_key and binding.model_key.startswith('anthropic') %}selected{% endif %}>Anthropic</option>
+                <label>Model (from Settings)</label>
+                <select id="model-key-select" onchange="onModelKeySelectChange()" style="margin-bottom:0.5rem;">
+                    <option value="">Loading models from settings...</option>
                 </select>
-            </div>
-            <div class="form-group">
-                <label>Model</label>
-                <select id="model-select" onchange="onModelChange()" style="margin-bottom:0.5rem;">
-                </select>
-                <input type="text" id="model-custom" placeholder="e.g. gpt-4.1, claude-sonnet-4-20250514, or any model name"
+                <input type="text" id="model-key-custom" placeholder="Custom model_key, e.g. openai:gpt-4.1"
                        style="display:none; margin-top:0.25rem;">
                 <input type="hidden" name="model_key" id="model-key-input"
                        value="{{ binding.model_key if binding else 'openai:gpt-4.1' }}" required>
-                <p class="text-xs text-dim" style="margin-top:0.25rem;">Format: <code id="model-key-preview">openai:gpt-4.1</code></p>
+                <p class="text-xs text-dim" style="margin-top:0.25rem;">Selected: <code id="model-key-preview">openai:gpt-4.1</code></p>
+                <p class="text-xs text-dim" style="margin-top:0.25rem;">Manage providers/models in <a href="/settings" style="color:var(--primary);">Settings</a>.</p>
             </div>
 
             <div class="form-group">
@@ -77,15 +71,31 @@
     <div class="card">
         <h3>Attached Capabilities</h3>
         <div class="form-group mt-1">
-            <label>Add Capability</label>
-            <select id="capability-select">
-                <option value="">Select capability...</option>
+            <label>Add Capabilities (multi-select)</label>
+            <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="setAllCapabilityChecks(true)">Select all</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="setAllCapabilityChecks(false)">Clear</button>
+            </div>
+            <div style="max-height: 220px; overflow-y: auto; border:1px solid var(--border); border-radius: var(--radius); padding:0.5rem;">
                 {% for cap in available_capabilities %}
-                <option value="{{ cap.id }}">{{ cap.name }} ({{ cap.kind }} / {{ cap.source_type }})</option>
+                {% set already_attached = (binding.capabilities | selectattr('capability_id', 'equalto', cap.id) | list | length) > 0 %}
+                <label style="display:flex; align-items:center; gap:0.5rem; padding:0.25rem 0; {% if already_attached %}opacity:0.65;{% endif %}">
+                    <input
+                        type="checkbox"
+                        class="capability-add-checkbox"
+                        data-capability-id="{{ cap.id }}"
+                        {% if already_attached %}disabled{% endif %}
+                        style="width:auto;"
+                    >
+                    <span>{{ cap.name }} ({{ cap.kind }} / {{ cap.source_type }}){% if already_attached %} - attached{% endif %}</span>
+                </label>
                 {% endfor %}
-            </select>
+                {% if not available_capabilities %}
+                <p class="text-sm text-dim">No capabilities available.</p>
+                {% endif %}
+            </div>
             <textarea id="runtime-overrides" rows="3" class="mt-1" placeholder='runtime_overrides JSON, e.g. {"api_key":"..."}'>{}</textarea>
-            <button class="btn btn-outline btn-sm mt-1" onclick="addCapability()">Add to Binding</button>
+            <button type="button" class="btn btn-outline btn-sm mt-1" onclick="addSelectedCapabilities()">Add Selected Capabilities</button>
         </div>
         {% for cap in binding.capabilities %}
         <div class="flex flex-between mt-1" style="padding: 0.5rem; background: var(--surface2); border-radius: var(--radius);">
@@ -107,88 +117,87 @@
 </div>
 
 <script>
-const OPENAI_MODELS = [
-    {id: 'gpt-4.1', name: 'GPT-4.1 (recommended)'},
-    {id: 'gpt-4o', name: 'GPT-4o'},
-    {id: 'gpt-4o-mini', name: 'GPT-4o Mini (fast/cheap)'},
-    {id: 'o3', name: 'o3 (reasoning)'},
-    {id: 'o4-mini', name: 'o4 Mini (reasoning)'},
-    {id: '__custom__', name: 'Custom model...'},
-];
-const ANTHROPIC_MODELS = [
-    {id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4 (recommended)'},
-    {id: 'claude-opus-4-20250514', name: 'Claude Opus 4 (powerful)'},
-    {id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5 (fast)'},
-    {id: '__custom__', name: 'Custom model...'},
-];
-
 const currentModelKey = '{{ binding.model_key if binding else "openai:gpt-4.1" }}';
+const modelKeySelect = document.getElementById('model-key-select');
+const modelKeyCustom = document.getElementById('model-key-custom');
+const modelKeyInput = document.getElementById('model-key-input');
+const modelKeyPreview = document.getElementById('model-key-preview');
 
-function onProviderChange() {
-    const provider = document.getElementById('provider-select').value;
-    const modelSelect = document.getElementById('model-select');
-    const models = provider === 'anthropic' ? ANTHROPIC_MODELS : OPENAI_MODELS;
-    modelSelect.innerHTML = '';
-    for (const m of models) {
-        const opt = document.createElement('option');
-        opt.value = m.id;
-        opt.textContent = m.name;
-        modelSelect.appendChild(opt);
-    }
-    modelSelect.value = models[0].id;
-    document.getElementById('model-custom').style.display = 'none';
-    onModelChange();
+function updateModelKey(modelKey) {
+    const next = (modelKey || '').trim() || 'openai:gpt-4.1';
+    modelKeyInput.value = next;
+    modelKeyPreview.textContent = next;
 }
 
-function onModelChange() {
-    const provider = document.getElementById('provider-select').value;
-    const modelSelect = document.getElementById('model-select');
-    const customInput = document.getElementById('model-custom');
-    const selected = modelSelect.value;
-
+function onModelKeySelectChange() {
+    const selected = modelKeySelect.value;
     if (selected === '__custom__') {
-        customInput.style.display = 'block';
-        customInput.focus();
-        updateModelKey(provider, customInput.value || 'custom-model');
-    } else {
-        customInput.style.display = 'none';
-        updateModelKey(provider, selected);
+        modelKeyCustom.style.display = 'block';
+        modelKeyCustom.focus();
+        updateModelKey(modelKeyCustom.value || currentModelKey);
+        return;
     }
+    modelKeyCustom.style.display = 'none';
+    updateModelKey(selected);
 }
 
-function updateModelKey(provider, model) {
-    const key = `${provider}:${model}`;
-    document.getElementById('model-key-input').value = key;
-    document.getElementById('model-key-preview').textContent = key;
-}
-
-// Custom model input listener
-document.getElementById('model-custom').addEventListener('input', function() {
-    const provider = document.getElementById('provider-select').value;
-    updateModelKey(provider, this.value || 'custom-model');
+modelKeyCustom.addEventListener('input', function() {
+    updateModelKey(this.value);
 });
 
-// Initialize from existing model_key
-(function() {
-    const parts = currentModelKey.split(':', 2);
-    const provider = parts[0] || 'openai';
-    const model = parts[1] || 'gpt-4.1';
-
-    document.getElementById('provider-select').value = provider;
-    onProviderChange();
-
-    // Try to select the matching model
-    const modelSelect = document.getElementById('model-select');
-    const options = Array.from(modelSelect.options).map(o => o.value);
-    if (options.includes(model)) {
-        modelSelect.value = model;
-    } else {
-        modelSelect.value = '__custom__';
-        document.getElementById('model-custom').style.display = 'block';
-        document.getElementById('model-custom').value = model;
+async function loadModelOptionsFromSettings() {
+    let options = [];
+    try {
+        const resp = await fetch('/api/llm-configs');
+        if (resp.ok) {
+            const configs = await resp.json();
+            options = configs
+                .filter(cfg => cfg.default_model)
+                .map(cfg => {
+                    const modelKey = `${cfg.provider}:${cfg.default_model}`;
+                    const label = cfg.is_default
+                        ? `${cfg.name} (${modelKey}) - default`
+                        : `${cfg.name} (${modelKey})`;
+                    return {value: modelKey, label};
+                });
+        }
+    } catch (e) {
+        // Fall back to existing model key input below.
     }
-    onModelChange();
-})();
+
+    const seen = new Set();
+    const deduped = [];
+    for (const opt of options) {
+        if (seen.has(opt.value)) continue;
+        seen.add(opt.value);
+        deduped.push(opt);
+    }
+
+    modelKeySelect.innerHTML = '';
+    if (!deduped.length) {
+        modelKeySelect.appendChild(new Option('No model found in settings, use custom model_key', '__custom__'));
+    } else {
+        for (const opt of deduped) {
+            modelKeySelect.appendChild(new Option(opt.label, opt.value));
+        }
+        modelKeySelect.appendChild(new Option('Custom model_key...', '__custom__'));
+    }
+
+    const optionValues = Array.from(modelKeySelect.options).map(o => o.value);
+    if (optionValues.includes(currentModelKey)) {
+        modelKeySelect.value = currentModelKey;
+        modelKeyCustom.style.display = 'none';
+        updateModelKey(currentModelKey);
+        return;
+    }
+
+    modelKeySelect.value = '__custom__';
+    modelKeyCustom.style.display = 'block';
+    modelKeyCustom.value = currentModelKey;
+    updateModelKey(currentModelKey);
+}
+
+loadModelOptionsFromSettings();
 
 async function saveBinding(e) {
     e.preventDefault();
@@ -219,10 +228,21 @@ async function saveBinding(e) {
     }
 }
 
-async function addCapability() {
+function setAllCapabilityChecks(checked) {
+    const checks = document.querySelectorAll('.capability-add-checkbox:not(:disabled)');
+    checks.forEach((el) => {
+        el.checked = checked;
+    });
+}
+
+async function addSelectedCapabilities() {
     const bindId = "{{ binding.id if binding else '' }}";
-    const capId = document.getElementById('capability-select').value;
-    if (!bindId || !capId) return;
+    const selected = Array.from(document.querySelectorAll('.capability-add-checkbox:checked'))
+        .map((el) => el.getAttribute('data-capability-id'))
+        .filter(Boolean);
+
+    if (!bindId || !selected.length) return;
+
     let overrides = {};
     try {
         overrides = JSON.parse(document.getElementById('runtime-overrides').value || '{}');
@@ -230,22 +250,24 @@ async function addCapability() {
         alert('Invalid runtime_overrides JSON: ' + e.message);
         return;
     }
-    const resp = await fetch(`/api/bindings/${bindId}/capabilities`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            capability_id: capId,
-            is_enabled: true,
-            mount_order: 0,
-            runtime_overrides: overrides,
-        }),
-    });
-    if (resp.ok) {
-        location.reload();
-        return;
+    for (const capId of selected) {
+        const resp = await fetch(`/api/bindings/${bindId}/capabilities`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                capability_id: capId,
+                is_enabled: true,
+                mount_order: 0,
+                runtime_overrides: overrides,
+            }),
+        });
+        if (!resp.ok) {
+            const err = await resp.json();
+            alert(err.detail || JSON.stringify(err));
+            return;
+        }
     }
-    const err = await resp.json();
-    alert(err.detail || JSON.stringify(err));
+    location.reload();
 }
 </script>
 {% endblock %}

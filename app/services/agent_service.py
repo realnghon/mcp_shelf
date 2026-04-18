@@ -9,7 +9,7 @@ from langchain_core.messages import AIMessage, AIMessageChunk
 
 from app.runtime.adapters.models import get_chat_model
 from app.runtime.session_runtime import prepare_session_runtime
-from app.runtime.nodes.call_model import _lc_message_to_dict, _to_lc_messages
+from app.runtime.nodes.call_model import _lc_message_to_dict, _normalize_model_error, _to_lc_messages
 from app.runtime.nodes.execute_tool import execute_tool_node
 from app.runtime.state import AgentState
 from app.schemas.runtime import RuntimeEvent
@@ -91,7 +91,7 @@ class AgentService:
 
         except Exception as e:
             logger.exception(f"Agent execution failed for session {session_id}")
-            message = str(e).strip() or e.__class__.__name__
+            message = _normalize_model_error(str(e).strip() or e.__class__.__name__)
             await self.session_service.update_session_status(session_id, "error", message)
             yield RuntimeEvent(event_type="error", data={"message": message})
 
@@ -134,24 +134,37 @@ class AgentService:
             merged_chunk: AIMessageChunk | None = None
             merged_message: AIMessage | None = None
             streamed_any = False
+            response_msg: AIMessageChunk | AIMessage | None = None
 
-            async for chunk in model.astream(lc_messages):
-                if isinstance(chunk, AIMessageChunk):
-                    token = _extract_chunk_text(chunk)
-                    if token:
-                        streamed_any = True
-                        yield RuntimeEvent(
-                            event_type="token",
-                            data={"content": token, "role": "assistant"},
-                        )
-                    merged_chunk = chunk if merged_chunk is None else merged_chunk + chunk
-                    continue
+            try:
+                async for chunk in model.astream(lc_messages):
+                    if isinstance(chunk, AIMessageChunk):
+                        token = _extract_chunk_text(chunk)
+                        if token:
+                            streamed_any = True
+                            yield RuntimeEvent(
+                                event_type="token",
+                                data={"content": token, "role": "assistant"},
+                            )
+                        merged_chunk = chunk if merged_chunk is None else merged_chunk + chunk
+                        continue
 
-                # Some providers return a full AIMessage in astream (no token chunks).
-                if isinstance(chunk, AIMessage):
-                    merged_message = chunk
+                    # Some providers return a full AIMessage in astream (no token chunks).
+                    if isinstance(chunk, AIMessage):
+                        merged_message = chunk
+            except ValueError as stream_err:
+                # Some OpenAI-compatible endpoints do not return generation chunks
+                # even when the SDK enters streaming mode.
+                if "No generation chunks were returned" not in str(stream_err):
+                    raise
+                logger.warning(
+                    "Streaming yielded no generation chunks for session %s, falling back to non-streaming ainvoke.",
+                    session_id,
+                )
+                response_msg = await model.ainvoke(lc_messages)
 
-            response_msg = merged_chunk or merged_message
+            if response_msg is None:
+                response_msg = merged_chunk or merged_message
             if response_msg is None:
                 response_msg = await model.ainvoke(lc_messages)
 

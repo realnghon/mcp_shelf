@@ -757,8 +757,8 @@
         <!-- Input bar -->
         <div class="chat-input">
             <input type="text" id="user-input" placeholder="Type your message..."
-                   onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendMessage()" disabled>
-            <button class="btn btn-primary btn-send" onclick="sendMessage()" id="send-btn" disabled>Send</button>
+                   onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendMessage()">
+            <button class="btn btn-primary btn-send" onclick="sendMessage()" id="send-btn">Send</button>
             <button class="btn btn-outline btn-send" onclick="stopSession()" id="stop-btn" style="display:none;">Stop</button>
         </div>
         </div>
@@ -825,10 +825,13 @@
 <script>
 const DEFAULT_MODEL = '{{ default_model }}';
 let currentSessionId = null;
+let currentSessionBindingId = null;
+let createSessionPromise = null;
 let eventSource = null;
 let thinkingTicker = null;
 let thinkingStartedAt = 0;
 let activeEditingMessageId = null;
+let lastBindingSelectValue = '';
 
 // Temperature slider
 const tempSlider = document.getElementById('temp-slider');
@@ -839,7 +842,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupMessageActions();
     syncPanelMode();
     window.addEventListener('resize', syncPanelMode);
-    await createSession();
+    const bindingSelect = document.getElementById('binding-select');
+    if (bindingSelect) {
+        lastBindingSelectValue = bindingSelect.value || '';
+        bindingSelect.addEventListener('change', onBindingChange);
+    }
 });
 
 // Toggle plugin panel
@@ -893,26 +900,40 @@ async function clearAllSessions() {
     const empty = document.createElement('div');
     empty.className = 'chat-empty';
     empty.id = 'chat-empty';
-    empty.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:0.8rem;opacity:0.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h2>Start a conversation</h2><p>Creating a fresh chat session...</p>';
+    empty.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:0.8rem;opacity:0.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h2>Start a conversation</h2><p>Type below and send to start a new chat.</p>';
     document.getElementById('chat-messages').appendChild(empty);
-    document.getElementById('user-input').disabled = true;
-    document.getElementById('send-btn').disabled = true;
+    document.getElementById('user-input').disabled = false;
+    document.getElementById('send-btn').disabled = false;
+    currentSessionBindingId = null;
+    const bindingSelect = document.getElementById('binding-select');
+    if (bindingSelect) {
+        lastBindingSelectValue = bindingSelect.value || '';
+    }
 }
 
 // Create session
 async function createSession() {
+    if (createSessionPromise) {
+        return await createSessionPromise;
+    }
+
+    createSessionPromise = (async () => {
     const bindingId = document.getElementById('binding-select').value;
+    const payload = {
+        binding_id: bindingId || null,
+    };
+    if (!bindingId) {
+        payload.model_key = DEFAULT_MODEL;
+    }
     const resp = await fetch('/api/sessions', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            binding_id: bindingId || null,
-            model_key: DEFAULT_MODEL,
-        }),
+        body: JSON.stringify(payload),
     });
     if (resp.ok) {
         const session = await resp.json();
         currentSessionId = session.id;
+        currentSessionBindingId = session.binding_id || null;
         document.getElementById('user-input').disabled = false;
         document.getElementById('send-btn').disabled = false;
         document.getElementById('chat-messages').innerHTML = '';
@@ -931,10 +952,24 @@ async function createSession() {
         list.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
         list.prepend(item);
 
+        const bindingSelect = document.getElementById('binding-select');
+        if (bindingSelect) {
+            bindingSelect.value = currentSessionBindingId || '';
+            lastBindingSelectValue = bindingSelect.value || '';
+        }
         document.getElementById('user-input').focus();
+        return session;
     } else {
         const err = await resp.json();
         alert('Failed: ' + (err.detail || JSON.stringify(err)));
+        return null;
+    }
+    })();
+
+    try {
+        return await createSessionPromise;
+    } finally {
+        createSessionPromise = null;
     }
 }
 
@@ -947,6 +982,17 @@ async function loadSession(sessionId) {
     document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
     const item = document.getElementById('sess-' + sessionId);
     if (item) item.classList.add('active');
+
+    const sessionResp = await fetch(`/api/sessions/${sessionId}`);
+    if (sessionResp.ok) {
+        const session = await sessionResp.json();
+        currentSessionBindingId = session.binding_id || null;
+        const bindingSelect = document.getElementById('binding-select');
+        if (bindingSelect) {
+            bindingSelect.value = currentSessionBindingId || '';
+            lastBindingSelectValue = bindingSelect.value || '';
+        }
+    }
 
     const resp = await fetch(`/api/sessions/${sessionId}/messages`);
     if (resp.ok) {
@@ -1139,6 +1185,44 @@ function renderMessageActions(row, mode = 'normal') {
     }
 }
 
+function onBindingChange() {
+    const bindingSelect = document.getElementById('binding-select');
+    if (!bindingSelect) return;
+    const selected = bindingSelect.value || '';
+
+    if (!currentSessionId) {
+        lastBindingSelectValue = selected;
+        return;
+    }
+
+    const current = currentSessionBindingId || '';
+    if (selected === current) {
+        lastBindingSelectValue = selected;
+        return;
+    }
+
+    const ok = confirm('Switching Binding starts a new chat context. Continue?');
+    if (!ok) {
+        bindingSelect.value = lastBindingSelectValue || current;
+        return;
+    }
+
+    currentSessionId = null;
+    currentSessionBindingId = null;
+    document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = '';
+    const empty = document.createElement('div');
+    empty.className = 'chat-empty';
+    empty.id = 'chat-empty';
+    empty.innerHTML = '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:0.8rem;opacity:0.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h2>Binding updated</h2><p>Send a message to start a new chat with this binding.</p>';
+    container.appendChild(empty);
+    document.getElementById('user-input').disabled = false;
+    document.getElementById('send-btn').disabled = false;
+    lastBindingSelectValue = selected;
+    document.getElementById('user-input').focus();
+}
+
 async function deleteMessageRow(row) {
     if (row.dataset.editing === '1') {
         cancelInlineEdit(row);
@@ -1260,10 +1344,17 @@ function normalizePrettyPayload(payload) {
 
 // Send message
 async function sendMessage() {
-    if (!currentSessionId) return;
     const input = document.getElementById('user-input');
     const text = input.value.trim();
     if (!text) return;
+
+    if (!currentSessionId) {
+        const session = await createSession();
+        if (!session || !currentSessionId) {
+            return;
+        }
+    }
+
     input.value = '';
     document.getElementById('chat-empty')?.remove();
 

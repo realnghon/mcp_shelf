@@ -19,6 +19,37 @@
 - LLM 配置：支持 OpenAI / Anthropic / OpenAI-compatible
 - 数据安全：本地 SQLite，`.env` 与数据库配置分离
 
+## 最近更新（2026-04-18）
+
+- 新增 MCP 向导式能力表单：
+  - 只保留主流程必填字段（`Name`、`Transport`、连接入口）
+  - `stdio` 必填 `command`；`streamable_http/sse` 必填 `URL`
+  - 提供 `stdio` 与 `streamable HTTP` 一键示例填充
+  - 高级 JSON 字段收纳到 `Advanced Settings`
+- 聊天页会话体验优化：
+  - 不再强制先点 `New Chat`
+  - 首次点击 `Send` 自动创建会话并发送
+  - 切换顶部 Binding 会提示进入新聊天上下文，避免误用旧上下文
+- MCP 运行链路增强：
+  - `mcp_server` 支持 `stdio`（`command/args/env/cwd`）与 `streamable_http/sse`
+  - Capability Test 对 MCP 能力可直接调用 `get_mcp_tools`
+  - Healthcheck 增加 `stdio` MCP 工具发现检查
+- OpenAI-compatible (`custom`) 兼容修复：
+  - `base_url` 自动规范到 `/v1`（若未包含）
+  - 修复 Settings 中 provider 编辑保存不生效（支持更新 `provider` 字段）
+  - 流式无 chunk 时自动回退 `ainvoke`，降低会话中断概率
+
+## MCP 表单必填说明
+
+- `Transport=stdio`：
+  - 必填：`Command`
+  - 选填：`Args`、`Environment Variables`、`Timeout`
+- `Transport=streamable_http` 或 `sse`：
+  - 必填：`URL`
+  - 选填：`Headers`、`Timeout`
+
+> 建议：OpenAI-compatible provider 的 Base URL 填写根地址或 `/v1` 都可以，系统会统一处理为 `/v1` 路径。
+
 ## 技术栈
 
 - FastAPI + Jinja2
