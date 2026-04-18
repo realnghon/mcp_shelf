@@ -8,10 +8,13 @@ import importlib
 import inspect
 import json
 import operator
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import unquote, urlparse
 
 import httpx
 from langchain_core.tools import StructuredTool
@@ -165,6 +168,19 @@ async def _calculator(expression: str) -> str:
 
 async def _http_fetch(url: str, timeout_s: float = 15.0) -> str:
     """Fetch a URL and return the response text."""
+    if url.startswith("file://"):
+        try:
+            parsed = urlparse(url)
+            path_text = unquote(parsed.path or "")
+            if sys.platform.startswith("win") and re.match(r"^/[a-zA-Z]:", path_text):
+                path_text = path_text[1:]
+            if not path_text and parsed.netloc:
+                path_text = unquote(parsed.netloc)
+            target = Path(path_text)
+            return target.read_text(encoding="utf-8", errors="replace")
+        except Exception as exc:
+            return f"Error fetching {url}: {exc}"
+
     try:
         timeout = max(float(timeout_s), 1.0)
     except (TypeError, ValueError):
@@ -192,30 +208,84 @@ async def _code_run(
         return json.dumps({"ok": False, "error": "script is required"}, ensure_ascii=False)
 
     timeout_s = max(int(timeout or 60), 1)
+    run_env = dict(os.environ)
+    # Force child Python process to use UTF-8 I/O on Windows to avoid gbk emoji failures.
+    run_env["PYTHONUTF8"] = "1"
+    run_env["PYTHONIOENCODING"] = "utf-8"
     if type == "powershell":
         cmd = ["powershell", "-NoProfile", "-Command", script]
     else:
-        cmd = [sys.executable, "-c", script]
+        cmd = [sys.executable, "-X", "utf8", "-c", script]
+
+    def _build_payload(returncode: int, stdout: str, stderr: str, fallback: str | None = None) -> str:
+        payload = {
+            "ok": returncode == 0,
+            "exit_code": returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+        }
+        if fallback:
+            payload["runner"] = fallback
+        return json.dumps(payload, ensure_ascii=False)
+
+    def _run_sync() -> str:
+        completed = subprocess.run(
+            cmd,
+            cwd=cwd if cwd else None,
+            env=run_env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout_s,
+        )
+        return _build_payload(
+            returncode=completed.returncode,
+            stdout=completed.stdout or "",
+            stderr=completed.stderr or "",
+            fallback="sync-subprocess",
+        )
 
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             cwd=cwd if cwd else None,
+            env=run_env,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
-        payload = {
-            "ok": proc.returncode == 0,
-            "exit_code": proc.returncode,
-            "stdout": stdout_b.decode("utf-8", errors="replace"),
-            "stderr": stderr_b.decode("utf-8", errors="replace"),
-        }
-        return json.dumps(payload, ensure_ascii=False)
+        return _build_payload(
+            returncode=proc.returncode if proc.returncode is not None else -1,
+            stdout=stdout_b.decode("utf-8", errors="replace"),
+            stderr=stderr_b.decode("utf-8", errors="replace"),
+        )
+    except NotImplementedError:
+        # Windows SelectorEventLoop does not support asyncio subprocess.
+        try:
+            return await asyncio.to_thread(_run_sync)
+        except subprocess.TimeoutExpired:
+            return json.dumps({"ok": False, "error": f"timeout after {timeout_s}s", "runner": "sync-subprocess"}, ensure_ascii=False)
+        except Exception as exc:
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": f"{type(exc).__name__}: {exc!s}" or type(exc).__name__,
+                    "runner": "sync-subprocess",
+                },
+                ensure_ascii=False,
+            )
     except asyncio.TimeoutError:
         return json.dumps({"ok": False, "error": f"timeout after {timeout_s}s"}, ensure_ascii=False)
     except Exception as exc:
-        return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+        return json.dumps(
+            {
+                "ok": False,
+                "error": f"{type(exc).__name__}: {exc!s}" or type(exc).__name__,
+                "runner": "async-subprocess",
+            },
+            ensure_ascii=False,
+        )
 
 
 async def _file_read(
@@ -327,7 +397,7 @@ def _upsert_tab(state: dict[str, Any], tab: dict[str, Any]) -> None:
 
 
 def _extract_url(script: str) -> str | None:
-    match = re.search(r"https?://[^\s'\"`<>]+", script)
+    match = re.search(r"(?:https?|file)://[^\s'\"`<>]+", script)
     return match.group(0) if match else None
 
 

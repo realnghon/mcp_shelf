@@ -91,8 +91,9 @@ class AgentService:
 
         except Exception as e:
             logger.exception(f"Agent execution failed for session {session_id}")
-            await self.session_service.update_session_status(session_id, "error", str(e))
-            yield RuntimeEvent(event_type="error", data={"message": str(e)})
+            message = str(e).strip() or e.__class__.__name__
+            await self.session_service.update_session_status(session_id, "error", message)
+            yield RuntimeEvent(event_type="error", data={"message": message})
 
     async def stop_session(self, session_id: str) -> bool:
         """Stop a running session."""

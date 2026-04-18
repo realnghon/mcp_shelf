@@ -154,3 +154,94 @@ def test_build_tools_node_treats_skill_capability_as_prompt_fragment(tmp_path):
         asyncio.run(db_module.close_db())
         db_module.settings.app_db_path = original_path
         db_module._db = None
+
+
+def test_builtin_code_run_healthcheck_works():
+    with TestClient(app) as client:
+        response = client.post("/api/capabilities/builtin:code-run/healthcheck")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["capability_id"] == "builtin:code-run"
+    assert payload["status"] == "ok"
+
+
+def test_builtin_atomic_tools_healthcheck_all_ok():
+    expected_slugs = {
+        "ask-user",
+        "calculator",
+        "code-run",
+        "file-patch",
+        "file-read",
+        "file-write",
+        "http-fetch",
+        "start-long-term-update",
+        "update-working-checkpoint",
+        "web-execute-js",
+        "web-scan",
+    }
+
+    with TestClient(app) as client:
+        listed = client.get("/api/capabilities?page_size=100")
+        assert listed.status_code == 200
+        items = listed.json()["items"]
+        builtin_tools = [
+            item for item in items
+            if str(item.get("id", "")).startswith("builtin:") and item.get("kind") == "tool"
+        ]
+        slugs = {item.get("slug") for item in builtin_tools}
+        assert expected_slugs <= slugs
+
+        for item in builtin_tools:
+            response = client.post(f"/api/capabilities/{item['id']}/healthcheck")
+            assert response.status_code == 200
+            assert response.json()["status"] == "ok"
+
+
+def test_edit_user_message_truncates_following_messages(tmp_path):
+    db_path = tmp_path / "app.db"
+    original_path = db_module.settings.app_db_path
+    db_module._db = None
+    db_module.settings.app_db_path = str(db_path)
+
+    try:
+        with TestClient(app) as client:
+            create_resp = client.post("/api/sessions", json={"model_key": "openai:gpt-4.1"})
+            assert create_resp.status_code == 201
+            session_id = create_resp.json()["id"]
+
+            m1 = client.post(
+                f"/api/sessions/{session_id}/messages",
+                json={"role": "user", "content": "first"},
+            ).json()
+            client.post(
+                f"/api/sessions/{session_id}/messages",
+                json={"role": "assistant", "content": "first-reply"},
+            )
+            client.post(
+                f"/api/sessions/{session_id}/messages",
+                json={"role": "user", "content": "second"},
+            )
+            client.post(
+                f"/api/sessions/{session_id}/messages",
+                json={"role": "assistant", "content": "second-reply"},
+            )
+
+            edit_resp = client.put(
+                f"/api/sessions/{session_id}/messages/{m1['id']}",
+                json={"content": "first-edited"},
+            )
+            assert edit_resp.status_code == 200
+            payload = edit_resp.json()
+            assert payload["updated_message"]["content"] == "first-edited"
+            assert payload["deleted_following_count"] == 3
+
+            list_resp = client.get(f"/api/sessions/{session_id}/messages")
+            assert list_resp.status_code == 200
+            items = list_resp.json()
+            assert len(items) == 1
+            assert items[0]["role"] == "user"
+            assert items[0]["content"] == "first-edited"
+    finally:
+        asyncio.run(db_module.close_db())
+        db_module.settings.app_db_path = original_path
+        db_module._db = None

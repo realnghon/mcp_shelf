@@ -53,3 +53,21 @@ class SessionService:
             record = await self.message_repo.add(session_id, msg)
             results.append(record)
         return results
+
+    async def delete_message(self, session_id: str, message_id: str) -> bool:
+        return await self.message_repo.delete(session_id, message_id)
+
+    async def edit_message_and_truncate_following(
+        self,
+        session_id: str,
+        message_id: str,
+        content: str,
+    ) -> tuple[dict | None, int]:
+        normalized = (content or "").strip()
+        if not normalized:
+            raise ValueError("Message content cannot be empty")
+        return await self.message_repo.edit_user_message_and_truncate_following(
+            session_id=session_id,
+            message_id=message_id,
+            content=normalized,
+        )

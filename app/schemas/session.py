@@ -40,6 +40,10 @@ class MessageCreate(BaseModel):
     tool_result: Any = None
 
 
+class MessageUpdate(BaseModel):
+    content: str = Field(min_length=1)
+
+
 # --- Message Response ---
 
 class MessageOut(BaseModel):

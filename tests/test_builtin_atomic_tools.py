@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import asyncio
 
 from app.runtime.adapters.local_tools import get_local_tools
 
@@ -42,3 +43,30 @@ async def test_memory_tools_persist_across_calls(tmp_path, monkeypatch):
     payload = json.loads(memory_file.read_text(encoding="utf-8"))
     assert isinstance(payload, list)
     assert any("Shanghai" in (item.get("key_info") or "") for item in payload)
+
+
+async def test_code_run_falls_back_when_async_subprocess_unavailable(monkeypatch):
+    async def _raise_not_implemented(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise NotImplementedError()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", _raise_not_implemented)
+    tools = {tool.name: tool for tool in get_local_tools()}
+    code_run = tools["code_run"]
+    assert code_run.coroutine is not None
+
+    result = await code_run.coroutine(script="print(1+2)", type="python", timeout=8)
+    payload = json.loads(result)
+    assert payload["ok"] is True
+    assert payload.get("runner") == "sync-subprocess"
+    assert "3" in (payload.get("stdout") or "")
+
+
+async def test_code_run_handles_unicode_output():
+    tools = {tool.name: tool for tool in get_local_tools()}
+    code_run = tools["code_run"]
+    assert code_run.coroutine is not None
+
+    result = await code_run.coroutine(script="print('🧪 unicode ok')", type="python", timeout=8)
+    payload = json.loads(result)
+    assert payload["ok"] is True
+    assert "unicode ok" in (payload.get("stdout") or "")

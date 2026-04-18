@@ -22,6 +22,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
+        min-height: 0;
         overflow: hidden;
     }
     .chat-stage {
@@ -133,6 +134,11 @@
     .msg-row-tool {
         padding-left: calc(28px + 0.5rem);
     }
+    .msg-row.has-actions {
+        margin-bottom: 2rem;
+    }
+    .msg-row-user .msg { margin-right: 0.2rem; }
+    .msg-row-assistant .msg { margin-left: 0.2rem; }
 
     .msg-avatar {
         width: 28px;
@@ -153,18 +159,55 @@
         max-width: min(72%, 760px);
         line-height: 1.6;
         font-size: 0.9rem;
+        word-wrap: break-word;
+        position: relative;
+        transition: transform 0.15s ease, box-shadow 0.2s ease;
     }
     .msg-user {
-        background: var(--primary);
+        background: linear-gradient(140deg, var(--primary) 0%, var(--primary-hover) 92%);
         color: white;
-        padding: 0.65rem 1rem;
-        border-radius: 16px 16px 4px 16px;
+        padding: 0.78rem 1.12rem;
+        border-radius: 22px 22px 8px 22px;
+        box-shadow: 0 10px 20px color-mix(in srgb, var(--primary) 28%, transparent);
+        border: 1px solid color-mix(in srgb, #fff 14%, transparent);
+        font-weight: 500;
+    }
+    .msg-user .msg-content { color: #fff; }
+    .msg-user::after {
+        content: "";
+        position: absolute;
+        right: -5px;
+        bottom: 8px;
+        width: 10px;
+        height: 10px;
+        transform: rotate(45deg);
+        border-radius: 2px;
+        background: color-mix(in srgb, var(--primary-hover) 85%, var(--primary) 15%);
+        border-right: 1px solid color-mix(in srgb, #fff 12%, transparent);
     }
     .msg-assistant {
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        padding: 0.65rem 1rem;
-        border-radius: 16px 16px 16px 4px;
+        background: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--surface2) 86%, #ffffff 14%),
+            color-mix(in srgb, var(--surface2) 96%, #000000 4%)
+        );
+        border: 1px solid color-mix(in srgb, var(--border) 82%, #ffffff 18%);
+        padding: 0.72rem 1.02rem;
+        border-radius: 20px 20px 20px 7px;
+        box-shadow: 0 8px 18px color-mix(in srgb, #0f172a 9%, transparent);
+    }
+    .msg-assistant::after {
+        content: "";
+        position: absolute;
+        left: -5px;
+        bottom: 8px;
+        width: 10px;
+        height: 10px;
+        transform: rotate(45deg);
+        border-radius: 2px;
+        background: color-mix(in srgb, var(--surface2) 94%, #ffffff 6%);
+        border-left: 1px solid color-mix(in srgb, var(--border) 80%, #ffffff 20%);
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, #ffffff 20%);
     }
     .msg-tool {
         background: var(--surface);
@@ -195,6 +238,55 @@
     .msg-content {
         white-space: pre-wrap;
         word-break: break-word;
+    }
+    .msg-actions {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        display: flex;
+        gap: 0.4rem;
+        opacity: 1;
+        transform: none;
+        transition: opacity 0.15s ease;
+        pointer-events: auto;
+        z-index: 4;
+    }
+    .msg-action-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-dim);
+        font-size: 0.84rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        box-shadow: 0 3px 10px color-mix(in srgb, #0f172a 14%, transparent);
+        transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .msg-action-btn:active { transform: scale(0.95); }
+    .msg-action-btn:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--primary) 70%, #ffffff 30%);
+        outline-offset: 1px;
+    }
+    .msg-action-btn:hover { color: var(--text); background: var(--surface2); }
+    .msg-user .msg-action-btn {
+        background: color-mix(in srgb, #0f172a 62%, var(--primary));
+        border-color: color-mix(in srgb, #ffffff 18%, transparent);
+        color: #fff;
+    }
+    .msg-user .msg-action-btn:hover { background: color-mix(in srgb, #0f172a 44%, var(--primary-hover)); }
+    .msg-action-btn.danger { color: var(--error); }
+    .msg-user .msg-action-btn.danger { color: #ffb5b5; }
+    .msg-content.msg-content-editing {
+        outline: 2px solid color-mix(in srgb, var(--primary) 65%, #ffffff 35%);
+        border-radius: 10px;
+        padding: 0.2rem 0.35rem;
+        background: color-mix(in srgb, #ffffff 85%, transparent);
+        color: #0f172a !important;
     }
     .md-content h1, .md-content h2, .md-content h3, .md-content h4 {
         line-height: 1.35;
@@ -271,26 +363,57 @@
     }
     .thought-body .md-content p:last-child { margin-bottom: 0; }
     .tool-event {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        max-width: min(78%, 760px);
+        background: color-mix(in srgb, var(--surface) 88%, #ffffff 12%);
+        border: 1px solid color-mix(in srgb, var(--border) 88%, #ffffff 12%);
+        border-radius: 16px;
+        max-width: min(76%, 760px);
         overflow: hidden;
         font-size: 0.82rem;
+        box-shadow: 0 8px 16px color-mix(in srgb, #0f172a 6%, transparent);
     }
     .tool-event-head {
+        list-style: none;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.5rem;
+        gap: 0.75rem;
         padding: 0.45rem 0.68rem;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, #ffffff 15%);
         background: color-mix(in srgb, var(--surface2) 65%, var(--surface));
+        cursor: pointer;
+    }
+    .tool-event-head::-webkit-details-marker { display: none; }
+    .tool-head-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-width: 0;
     }
     .tool-event-name {
         font-family: 'SF Mono', 'Fira Code', monospace;
         font-size: 0.78rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
+    .tool-head-right {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-shrink: 0;
+    }
+    .tool-preview {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        margin-left: 1.15rem;
+        margin-top: 0.1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 60ch;
+        padding-bottom: 0.4rem;
+    }
+    .tool-event[open] .tool-preview { display: none; }
     .tool-chip {
         font-size: 0.66rem;
         letter-spacing: 0.04em;
@@ -315,9 +438,9 @@
     }
     .tool-event-body pre {
         margin: 0.28rem 0 0;
-        padding: 0.58rem 0.64rem;
-        border-radius: 8px;
-        border: 1px solid var(--border);
+        padding: 0.64rem 0.68rem;
+        border-radius: 10px;
+        border: 1px solid color-mix(in srgb, var(--border) 85%, #ffffff 15%);
         background: color-mix(in srgb, var(--surface3) 60%, transparent);
         font-size: 0.76rem;
         overflow-x: auto;
@@ -325,6 +448,29 @@
         word-break: break-word;
         font-family: 'SF Mono', 'Fira Code', monospace;
     }
+    .tool-caret {
+        font-size: 0.7rem;
+        color: var(--text-dim);
+        transform: rotate(-90deg);
+        transition: transform 0.15s ease;
+    }
+    .tool-event[open] .tool-caret { transform: rotate(0deg); }
+    .tool-copy-btn {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: 0.68rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+    .tool-copy-btn:hover { color: var(--text); background: var(--surface2); }
     .typing-indicator { color: var(--text-dim); }
     .thinking-status {
         display: inline-flex;
@@ -398,9 +544,19 @@
         display: flex;
         flex-direction: column;
         height: 100%;
+        min-height: 0;
         overflow: hidden;
         transition: width 0.2s;
         box-shadow: var(--shadow);
+    }
+    .plugin-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.5);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 40;
     }
     .chat-layout.panel-collapsed .plugin-panel {
         width: 0;
@@ -515,14 +671,44 @@
     .status-dot.error { background: var(--error); }
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
+    .chat-layout.drawer-mode {
+        grid-template-columns: 1fr;
+    }
+    .chat-layout.drawer-mode .plugin-panel {
+        position: fixed;
+        top: 0;
+        right: -310px;
+        width: min(88vw, 310px);
+        height: 100vh;
+        border-radius: 0;
+        z-index: 50;
+        transition: right 0.22s ease;
+    }
+    .chat-layout.drawer-mode.drawer-open .plugin-panel {
+        right: 0;
+    }
+    .chat-layout.drawer-mode.drawer-open + .plugin-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
     @media (max-width: 768px) {
         .chat-layout { grid-template-columns: 1fr; }
-        .plugin-panel { display: none; }
-        .chat-config .panel-toggle-inline { display: none; }
+        .chat-config .panel-toggle-inline { display: inline-flex; }
         .chat-layout { padding: 0.5rem; }
         .chat-messages { padding: 1rem; }
         .chat-input { padding: 0.75rem 1rem; }
         .msg { max-width: 92%; }
+        .msg-actions {
+            top: calc(100% + 4px);
+            right: 0;
+            gap: 0.26rem;
+        }
+        .msg-action-btn {
+            width: 24px;
+            height: 24px;
+            font-size: 0.78rem;
+        }
         .msg-row-tool { padding-left: 0; }
         .tool-event { max-width: 94%; }
     }
@@ -630,6 +816,7 @@
         </div>
     </div>
 </div>
+<div class="plugin-backdrop" id="plugin-backdrop" onclick="closePanel()"></div>
 
 {% endblock %}
 
@@ -641,6 +828,7 @@ let currentSessionId = null;
 let eventSource = null;
 let thinkingTicker = null;
 let thinkingStartedAt = 0;
+let activeEditingMessageId = null;
 
 // Temperature slider
 const tempSlider = document.getElementById('temp-slider');
@@ -648,17 +836,36 @@ const tempValue = document.getElementById('temp-value');
 tempSlider.addEventListener('input', () => { tempValue.textContent = tempSlider.value; });
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const firstSession = document.querySelector('#session-list .session-item');
-    if (firstSession?.dataset?.sessionId) {
-        await loadSession(firstSession.dataset.sessionId);
-        return;
-    }
+    setupMessageActions();
+    syncPanelMode();
+    window.addEventListener('resize', syncPanelMode);
     await createSession();
 });
 
 // Toggle plugin panel
 function togglePanel() {
-    document.getElementById('chat-layout').classList.toggle('panel-collapsed');
+    const layout = document.getElementById('chat-layout');
+    if (layout.classList.contains('drawer-mode')) {
+        layout.classList.toggle('drawer-open');
+        return;
+    }
+    layout.classList.toggle('panel-collapsed');
+}
+
+function closePanel() {
+    document.getElementById('chat-layout').classList.remove('drawer-open');
+}
+
+function syncPanelMode() {
+    const layout = document.getElementById('chat-layout');
+    const pluginCount = document.querySelectorAll('.plugin-item').length;
+    const shouldDrawer = window.innerWidth <= 1080 || pluginCount >= 24;
+    layout.classList.toggle('drawer-mode', shouldDrawer);
+    if (shouldDrawer) {
+        layout.classList.remove('panel-collapsed');
+    } else {
+        layout.classList.remove('drawer-open');
+    }
 }
 
 // Toggle capability
@@ -758,9 +965,9 @@ function appendMessage(msg) {
     if (!container) return;
 
     if (msg.role === 'user') {
-        container.appendChild(buildUserRow(msg.content || ''));
+        container.appendChild(buildUserRow(msg.content || '', msg.id || null));
     } else if (msg.role === 'assistant') {
-        container.appendChild(buildAssistantRow(msg.content || '', false));
+        container.appendChild(buildAssistantRow(msg.content || '', false, msg.id || null));
     } else if (msg.role === 'tool') {
         container.appendChild(buildToolRow('result', msg.tool_name || 'tool', msg.tool_result || msg.content || ''));
     } else if (msg.role === 'system') {
@@ -772,23 +979,180 @@ function appendMessage(msg) {
     container.scrollTop = container.scrollHeight;
 }
 
-function buildUserRow(content) {
+function buildUserRow(content, messageId = null) {
     const row = document.createElement('div');
     row.className = 'msg-row msg-row-user';
+    if (messageId) row.dataset.messageId = messageId;
+    row.dataset.role = 'user';
+    if (messageId) row.classList.add('has-actions');
     row.innerHTML = `
-        <div class="msg msg-user"><div class="msg-content">${escapeHtml(content)}</div></div>
+        <div class="msg msg-user">
+            ${buildMessageActions('user', !!messageId)}
+            <div class="msg-content">${escapeHtml(content)}</div>
+        </div>
         <div class="msg-avatar msg-avatar-user">U</div>`;
     return row;
 }
 
-function buildAssistantRow(content, streaming) {
+function buildAssistantRow(content, streaming, messageId = null) {
     const row = document.createElement('div');
     row.className = 'msg-row msg-row-assistant';
+    if (messageId) row.dataset.messageId = messageId;
+    row.dataset.role = 'assistant';
+    if (messageId) row.classList.add('has-actions');
     const body = renderAssistantBody(content, {streaming});
     row.innerHTML = `
         <div class="msg-avatar msg-avatar-assistant">AI</div>
-        <div class="msg msg-assistant">${body}</div>`;
+        <div class="msg msg-assistant">
+            ${buildMessageActions('assistant', !!messageId)}
+            ${body}
+        </div>`;
     return row;
+}
+
+function buildMessageActions(role, canDelete) {
+    if (role === 'user') {
+        return `
+            <div class="msg-actions">
+                <button type="button" class="msg-action-btn" data-msg-action="edit" title="Edit and resend">✎</button>
+                ${canDelete ? '<button type="button" class="msg-action-btn danger" data-msg-action="delete" title="Delete message">×</button>' : ''}
+            </div>`;
+    }
+    if (role === 'assistant') {
+        return canDelete
+            ? '<div class="msg-actions"><button type="button" class="msg-action-btn danger" data-msg-action="delete" title="Delete message">×</button></div>'
+            : '';
+    }
+    return '';
+}
+
+function setupMessageActions() {
+    const chat = document.getElementById('chat-messages');
+    chat.addEventListener('click', async (event) => {
+        const actionBtn = event.target.closest('[data-msg-action]');
+        if (!actionBtn) return;
+        const row = actionBtn.closest('.msg-row');
+        if (!row) return;
+        const action = actionBtn.dataset.msgAction;
+        if (action === 'edit') {
+            startInlineEdit(row);
+            return;
+        }
+        if (action === 'save-edit') {
+            await saveInlineEdit(row);
+            return;
+        }
+        if (action === 'cancel-edit') {
+            cancelInlineEdit(row);
+            return;
+        }
+        if (action === 'delete') {
+            await deleteMessageRow(row);
+        }
+    });
+}
+
+function startInlineEdit(row) {
+    if (row.dataset.role !== 'user') return;
+    if (!row.dataset.messageId) return;
+    if (activeEditingMessageId && activeEditingMessageId !== row.dataset.messageId) return;
+
+    const contentEl = row.querySelector('.msg-content');
+    if (!contentEl) return;
+    row.dataset.editing = '1';
+    row.dataset.originalContent = contentEl.textContent || '';
+    activeEditingMessageId = row.dataset.messageId;
+
+    contentEl.contentEditable = 'true';
+    contentEl.classList.add('msg-content-editing');
+    contentEl.focus();
+    const range = document.createRange();
+    range.selectNodeContents(contentEl);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    renderMessageActions(row, 'editing');
+}
+
+function cancelInlineEdit(row) {
+    if (row.dataset.editing !== '1') return;
+    const contentEl = row.querySelector('.msg-content');
+    if (contentEl) {
+        contentEl.textContent = row.dataset.originalContent || '';
+        contentEl.contentEditable = 'false';
+        contentEl.classList.remove('msg-content-editing');
+    }
+    row.dataset.editing = '0';
+    row.dataset.originalContent = '';
+    activeEditingMessageId = null;
+    renderMessageActions(row, 'normal');
+}
+
+async function saveInlineEdit(row) {
+    if (row.dataset.editing !== '1') return;
+    if (!currentSessionId) return;
+    const messageId = row.dataset.messageId;
+    if (!messageId) return;
+
+    const contentEl = row.querySelector('.msg-content');
+    const newText = (contentEl?.textContent || '').trim();
+    if (!newText) {
+        alert('Message cannot be empty.');
+        return;
+    }
+
+    const resp = await fetch(`/api/sessions/${currentSessionId}/messages/${messageId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({content: newText}),
+    });
+    if (!resp.ok) {
+        alert('Failed to edit this message.');
+        return;
+    }
+
+    row.dataset.editing = '0';
+    row.dataset.originalContent = '';
+    activeEditingMessageId = null;
+    await loadSession(currentSessionId);
+    await runCurrentSessionStream();
+}
+
+function renderMessageActions(row, mode = 'normal') {
+    const actions = row.querySelector('.msg-actions');
+    if (!actions) return;
+    const role = row.dataset.role || '';
+    if (mode === 'editing') {
+        actions.innerHTML = `
+            <button type="button" class="msg-action-btn" data-msg-action="save-edit" title="Save and regenerate">✓</button>
+            <button type="button" class="msg-action-btn" data-msg-action="cancel-edit" title="Cancel">↺</button>`;
+        return;
+    }
+    if (role === 'user') {
+        actions.innerHTML = `
+            <button type="button" class="msg-action-btn" data-msg-action="edit" title="Edit and regenerate">✎</button>
+            <button type="button" class="msg-action-btn danger" data-msg-action="delete" title="Delete message">×</button>`;
+    } else if (role === 'assistant') {
+        actions.innerHTML = `
+            <button type="button" class="msg-action-btn danger" data-msg-action="delete" title="Delete message">×</button>`;
+    }
+}
+
+async function deleteMessageRow(row) {
+    if (row.dataset.editing === '1') {
+        cancelInlineEdit(row);
+    }
+    const messageId = row.dataset.messageId;
+    if (!messageId || !currentSessionId) return;
+    if (!confirm('Delete this message?')) return;
+
+    const resp = await fetch(`/api/sessions/${currentSessionId}/messages/${messageId}`, {method: 'DELETE'});
+    if (resp.ok) {
+        await loadSession(currentSessionId);
+        return;
+    }
+    alert('Failed to delete this message.');
 }
 
 function buildToolRow(kind, toolName, payload) {
@@ -797,16 +1161,24 @@ function buildToolRow(kind, toolName, payload) {
     const chipClass = kind === 'call' ? 'call' : 'result';
     const chipText = kind === 'call' ? 'Tool Call' : 'Tool Result';
     const body = normalizePrettyPayload(payload);
+    const firstLine = (body || '').split('\n')[0].trim();
+    const preview = firstLine.length > 96 ? firstLine.slice(0, 96) + '…' : firstLine;
     row.innerHTML = `
-        <div class="tool-event">
-            <div class="tool-event-head">
-                <span class="tool-event-name">${escapeHtml(toolName || 'tool')}</span>
-                <span class="tool-chip ${chipClass}">${chipText}</span>
-            </div>
+        <details class="tool-event">
+            <summary class="tool-event-head">
+                <span class="tool-head-meta">
+                    <span class="tool-caret">▶</span>
+                    <span class="tool-event-name">${escapeHtml(toolName || 'tool')}</span>
+                </span>
+                <span class="tool-head-right">
+                    <span class="tool-chip ${chipClass}">${chipText}</span>
+                </span>
+            </summary>
+            <div class="tool-preview">${escapeHtml(preview || '(empty payload)')}</div>
             <div class="tool-event-body">
                 <pre>${escapeHtml(body)}</pre>
             </div>
-        </div>`;
+        </details>`;
     return row;
 }
 
@@ -895,18 +1267,31 @@ async function sendMessage() {
     input.value = '';
     document.getElementById('chat-empty')?.remove();
 
-    appendMessage({role: 'user', content: text});
-
-    await fetch(`/api/sessions/${currentSessionId}/messages`, {
+    const addResp = await fetch(`/api/sessions/${currentSessionId}/messages`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({role: 'user', content: text}),
     });
+    if (!addResp.ok) {
+        alert('Failed to send message.');
+        return;
+    }
+    const createdMessage = await addResp.json();
+    appendMessage(createdMessage);
+    await runCurrentSessionStream();
+}
 
+async function runCurrentSessionStream() {
+    if (!currentSessionId) return;
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+    }
     document.getElementById('send-btn').style.display = 'none';
     document.getElementById('stop-btn').style.display = 'inline-flex';
-    input.disabled = true;
+    document.getElementById('user-input').disabled = true;
 
+    document.getElementById('typing-row')?.remove();
     const typingRow = buildThinkingRow();
     document.getElementById('chat-messages').appendChild(typingRow);
     startThinkingTicker();
@@ -960,13 +1345,19 @@ async function sendMessage() {
     });
 
     eventSource.addEventListener('error', (e) => {
-        const data = e.data ? JSON.parse(e.data) : {};
+        let data = {};
+        try {
+            data = e.data ? JSON.parse(e.data) : {};
+        } catch {
+            data = {};
+        }
         const typingRow = document.getElementById('typing-row');
         if (typingRow) {
             stopThinkingTicker();
             typingRow.remove();
         }
-        appendMessage({role: 'system', content: `Error: ${data.message || 'Unknown error'}`});
+        const message = (data && data.message) ? data.message : 'Unknown error';
+        appendMessage({role: 'system', content: `Error: ${message}`});
         finishRun();
     });
 
@@ -983,6 +1374,7 @@ async function sendMessage() {
 function finishRun() {
     if (eventSource) { eventSource.close(); eventSource = null; }
     stopThinkingTicker();
+    document.getElementById('typing-row')?.remove();
     document.getElementById('send-btn').style.display = 'inline-flex';
     document.getElementById('stop-btn').style.display = 'none';
     document.getElementById('user-input').disabled = false;
@@ -1046,3 +1438,4 @@ function updateThinkingLabel() {
 }
 </script>
 {% endblock %}
+

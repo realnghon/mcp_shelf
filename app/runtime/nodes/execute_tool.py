@@ -1,6 +1,9 @@
 import json
+import logging
 
 from app.runtime.state import AgentState
+
+logger = logging.getLogger(__name__)
 
 
 async def execute_tool_node(state: AgentState) -> dict:
@@ -42,6 +45,7 @@ async def execute_tool_node(state: AgentState) -> dict:
         tool = tool_map.get(tool_name)
 
         if not tool:
+            logger.warning("tool_not_found name=%s tool_call_id=%s", tool_name, tool_call_id)
             new_messages.append({
                 "role": "tool",
                 "content": f"Tool '{tool_name}' not found",
@@ -53,6 +57,7 @@ async def execute_tool_node(state: AgentState) -> dict:
             continue
 
         try:
+            logger.info("tool_call_start name=%s tool_call_id=%s", tool_name, tool_call_id)
             if hasattr(tool, "coroutine") and tool.coroutine:
                 result = await tool.coroutine(**tool_args)
             elif hasattr(tool, "func"):
@@ -65,6 +70,12 @@ async def execute_tool_node(state: AgentState) -> dict:
                 result = f"Error: Cannot execute tool '{tool_name}'"
 
             result_str = str(result) if result is not None else ""
+            logger.info(
+                "tool_call_done name=%s tool_call_id=%s result_preview=%s",
+                tool_name,
+                tool_call_id,
+                result_str[:220],
+            )
 
             new_messages.append({
                 "role": "tool",
@@ -76,6 +87,7 @@ async def execute_tool_node(state: AgentState) -> dict:
             })
 
         except Exception as e:
+            logger.exception("tool_call_failed name=%s tool_call_id=%s", tool_name, tool_call_id)
             error_msg = f"Error executing tool '{tool_name}': {e}"
             new_messages.append({
                 "role": "tool",
@@ -86,7 +98,12 @@ async def execute_tool_node(state: AgentState) -> dict:
             })
             errors.append(error_msg)
 
+    if errors:
+        logger.warning("tool_call_nonfatal_errors count=%s", len(errors))
+
     return {
         "messages": new_messages,
-        "error": "; ".join(errors) if errors else None,
+        # Tool-level failures are surfaced as tool messages and should not hard-stop
+        # the whole run; the model can inspect the error and retry with corrected args.
+        "error": None,
     }

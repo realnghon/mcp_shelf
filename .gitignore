@@ -31,6 +31,8 @@ data/app.db-wal
 data/checkpoints.db
 data/exports/
 data/imports/
+data/healthcheck/
+data/memory/
 
 # Marketplace data is versioned
 # data/marketplace/ is tracked

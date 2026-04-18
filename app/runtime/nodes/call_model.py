@@ -43,10 +43,11 @@ async def call_model_node(state: AgentState) -> dict:
         }
 
     except Exception as e:
+        raw_error = str(e).strip() or e.__class__.__name__
         return {
             "messages": messages,
             "current_step": current_step,
-            "error": _normalize_model_error(str(e)),
+            "error": _normalize_model_error(raw_error),
         }
 
 

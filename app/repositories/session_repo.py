@@ -168,3 +168,47 @@ class MessageRepo:
         await db.execute(f"INSERT INTO runtime_messages ({cols}) VALUES ({placeholders})", list(record.values()))
         await db.commit()
         return record
+
+    async def delete(self, session_id: str, message_id: str) -> bool:
+        db = await get_db()
+        cursor = await db.execute(
+            "DELETE FROM runtime_messages WHERE session_id = ? AND id = ?",
+            [session_id, message_id],
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
+    async def get_by_id(self, session_id: str, message_id: str) -> dict | None:
+        db = await get_db()
+        cursor = await db.execute(
+            "SELECT * FROM runtime_messages WHERE session_id = ? AND id = ?",
+            [session_id, message_id],
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+    async def edit_user_message_and_truncate_following(
+        self,
+        session_id: str,
+        message_id: str,
+        content: str,
+    ) -> tuple[dict | None, int]:
+        db = await get_db()
+        current = await self.get_by_id(session_id, message_id)
+        if not current:
+            return None, 0
+        if current.get("role") != "user":
+            raise ValueError("Only user messages can be edited")
+
+        await db.execute(
+            "UPDATE runtime_messages SET content = ? WHERE session_id = ? AND id = ?",
+            [content, session_id, message_id],
+        )
+        cursor = await db.execute(
+            "DELETE FROM runtime_messages WHERE session_id = ? AND message_index > ?",
+            [session_id, int(current["message_index"])],
+        )
+        await db.commit()
+
+        updated = await self.get_by_id(session_id, message_id)
+        return updated, int(cursor.rowcount or 0)

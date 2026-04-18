@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from app.schemas.session import SessionCreate, MessageCreate, MessageOut
+from app.schemas.session import SessionCreate, MessageCreate, MessageOut, MessageUpdate
 from app.schemas.common import PaginatedResponse
 from app.services.session_service import SessionService
 
@@ -59,3 +59,28 @@ async def add_message(session_id: str, data: MessageCreate):
     if not session:
         raise HTTPException(404, "Session not found")
     return await svc.add_message(session_id, data)
+
+
+@router.delete("/{session_id}/messages/{message_id}", status_code=204)
+async def delete_message(session_id: str, message_id: str):
+    ok = await svc.delete_message(session_id, message_id)
+    if not ok:
+        raise HTTPException(404, "Message not found")
+
+
+@router.put("/{session_id}/messages/{message_id}")
+async def edit_message(session_id: str, message_id: str, data: MessageUpdate):
+    try:
+        updated, deleted_count = await svc.edit_message_and_truncate_following(
+            session_id=session_id,
+            message_id=message_id,
+            content=data.content,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    if not updated:
+        raise HTTPException(404, "Message not found")
+    return {
+        "updated_message": updated,
+        "deleted_following_count": deleted_count,
+    }
