@@ -3,6 +3,7 @@ from typing import Any
 from app.repositories.session_repo import SessionRepo, MessageRepo
 from app.repositories.audit_repo import AuditRepo
 from app.schemas.session import SessionCreate, MessageCreate
+from app.services.llm_config_service import LLMConfigService
 
 
 class SessionService:
@@ -10,6 +11,7 @@ class SessionService:
         self.session_repo = SessionRepo()
         self.message_repo = MessageRepo()
         self.audit = AuditRepo()
+        self.llm_config_svc = LLMConfigService()
 
     async def list_sessions(self, **kwargs) -> tuple[list[dict], int]:
         return await self.session_repo.list_all(**kwargs)
@@ -18,7 +20,15 @@ class SessionService:
         return await self.session_repo.get_by_id(session_id)
 
     async def create_session(self, data: SessionCreate, actor_id: str | None = None) -> dict:
-        record = await self.session_repo.create(data.model_dump())
+        payload = data.model_dump()
+        model_key = str(payload.get("model_key") or "").strip()
+        binding_id = payload.get("binding_id")
+        if not model_key and not binding_id:
+            payload["model_key"] = await self.llm_config_svc.resolve_default_model_key()
+        elif model_key:
+            payload["model_key"] = model_key
+
+        record = await self.session_repo.create(payload)
         await self.audit.log("create", "session", record["id"], actor_id)
         return record
 

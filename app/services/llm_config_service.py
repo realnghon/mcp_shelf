@@ -14,27 +14,32 @@ class LLMConfigService:
     def __init__(self):
         self.repo = LLMConfigRepo()
 
+    @staticmethod
+    def _mask_api_key(config: dict | None) -> dict | None:
+        if not config:
+            return config
+        sanitized = dict(config)
+        sanitized["api_key_set"] = bool(sanitized.get("api_key"))
+        sanitized.pop("api_key", None)
+        return sanitized
+
     async def list_configs(self) -> list[dict]:
         configs = await self.repo.list_all()
-        # Mask API keys in response
-        for c in configs:
-            c["api_key_set"] = bool(c.get("api_key"))
-            c.pop("api_key", None)
-        return configs
+        return [self._mask_api_key(c) for c in configs if c is not None]
 
     async def get_config(self, config_id: str) -> dict | None:
         config = await self.repo.get_by_id(config_id)
-        if config:
-            config["api_key_set"] = bool(config.get("api_key"))
-            config.pop("api_key", None)
-        return config
+        return self._mask_api_key(config)
 
     async def create_config(self, data: LLMConfigCreate) -> dict:
-        return await self.repo.create(data.model_dump())
+        created = await self.repo.create(data.model_dump())
+        masked = self._mask_api_key(created)
+        return masked or {}
 
     async def update_config(self, config_id: str, data: LLMConfigUpdate) -> dict | None:
         update_data = data.model_dump(exclude_none=True)
-        return await self.repo.update(config_id, update_data)
+        updated = await self.repo.update(config_id, update_data)
+        return self._mask_api_key(updated)
 
     async def delete_config(self, config_id: str) -> bool:
         return await self.repo.delete(config_id)
@@ -65,3 +70,15 @@ class LLMConfigService:
         elif provider == "anthropic":
             return settings.anthropic_base_url or None
         return None
+
+    async def resolve_default_model_key(self) -> str:
+        """Resolve effective default provider/model key for new sessions."""
+        default_cfg = await self.repo.get_default()
+        if default_cfg:
+            provider = str(default_cfg.get("provider") or "openai").strip() or "openai"
+            default_model = str(default_cfg.get("default_model") or "").strip()
+            if default_model:
+                return f"{provider}:{default_model}"
+
+        openai_model = (settings.openai_model or "").strip() or "gpt-4.1"
+        return f"openai:{openai_model}"

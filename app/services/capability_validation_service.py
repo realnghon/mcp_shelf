@@ -42,6 +42,13 @@ class CapabilityValidationService:
             else:
                 errors.append(f"connection_config.transport '{transport}' is not supported for mcp_server capabilities")
 
+        if capability.get("kind") == "skill":
+            connection_config = capability.get("connection_config") or {}
+            prompt = connection_config.get("prompt") or connection_config.get("instructions")
+            path = connection_config.get("path")
+            if not (isinstance(prompt, str) and prompt.strip()) and not (isinstance(path, str) and path.strip()):
+                errors.append("skill capability requires connection_config.path or connection_config.prompt")
+
         return {
             "valid": len(errors) == 0,
             "schema_status": "valid" if not errors else "invalid",

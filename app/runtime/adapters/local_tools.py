@@ -24,10 +24,6 @@ from app.core.config import settings
 from app.runtime.adapters.builtin_catalog import load_builtin_capabilities
 
 
-class EchoInput(BaseModel):
-    message: str = Field(description="Message to echo back")
-
-
 class CalculatorInput(BaseModel):
     expression: str = Field(description="Mathematical expression to evaluate")
 
@@ -126,10 +122,6 @@ def _read_json(path: Path, default: Any) -> Any:
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-async def _echo(message: str) -> str:
-    return f"Echo: {message}"
 
 
 async def _calculator(expression: str) -> str:
@@ -483,12 +475,6 @@ def _now() -> str:
 def get_local_tools() -> list[StructuredTool]:
     """Always-on local tools."""
     return [
-        StructuredTool.from_function(
-            coroutine=_echo,
-            name="echo",
-            description="Echo back the provided message. Useful for testing.",
-            args_schema=EchoInput,
-        ),
         StructuredTool.from_function(
             coroutine=_calculator,
             name="calculator",

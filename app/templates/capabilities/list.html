@@ -139,7 +139,10 @@
         <h1>Capabilities</h1>
         <p class="text-dim text-sm">Unified registry for builtin tools, local plugins, and MCP servers</p>
     </div>
-    <a href="/capabilities/new" class="btn btn-primary">+ Add New</a>
+    <div class="flex flex-gap">
+        <button type="button" class="btn btn-outline btn-sm" onclick="syncSuperpowersSkills()">Sync Superpowers</button>
+        <a href="/capabilities/new" class="btn btn-primary">+ Add New</a>
+    </div>
 </div>
 
 <div class="cap-layout">
@@ -258,6 +261,18 @@ function setFilter(field, value) {
 function selectCategory(category) {
     document.getElementById('input-category').value = category;
     document.getElementById('cap-filter-form').submit();
+}
+
+async function syncSuperpowersSkills() {
+    if (!confirm('Sync latest skills from superpowers GitHub?')) return;
+    const resp = await fetch('/api/skills/sync/superpowers', {method: 'POST'});
+    const payload = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+        alert(payload.detail || 'Sync failed');
+        return;
+    }
+    alert(`Synced ${payload.skill_count || 0} superpowers skills.`);
+    window.location.reload();
 }
 </script>
 {% endblock %}

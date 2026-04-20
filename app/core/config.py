@@ -7,7 +7,8 @@ class Settings(BaseSettings):
     app_db_path: str = "data/app.db"
     checkpoint_db_path: str = "data/checkpoints.db"
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 12138
+    root_path: str = ""
     debug: bool = True
     openai_api_key: str = ""
     openai_base_url: str = ""

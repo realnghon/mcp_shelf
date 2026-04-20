@@ -1,7 +1,0 @@
-{
-  "name": "compound-engineering-template",
-  "version": "0.1.0",
-  "description": "Local template for mounting compound-engineering style skills in MCP Shelf.",
-  "skills_root": "skills",
-  "source": "https://github.com/EveryInc/compound-engineering-plugin"
-}

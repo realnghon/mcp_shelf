@@ -9,7 +9,7 @@ class SessionCreate(BaseModel):
     binding_id: str | None = None
     title: str | None = None
     actor_id: str | None = None
-    model_key: str = "openai:gpt-4.1"
+    model_key: str | None = None
     runtime_config: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -34,6 +34,7 @@ class SessionOut(BaseModel):
 class MessageCreate(BaseModel):
     role: str = Field(..., pattern=r"^(user|assistant|tool|system)$")
     content: str | None = None
+    tool_event_type: str | None = None
     tool_name: str | None = None
     tool_call_id: str | None = None
     tool_args: Any = None
@@ -51,6 +52,7 @@ class MessageOut(BaseModel):
     session_id: str
     role: str
     content: str | None
+    tool_event_type: str | None
     tool_name: str | None
     tool_call_id: str | None
     tool_args: str | None

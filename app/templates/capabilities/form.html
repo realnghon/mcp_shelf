@@ -153,11 +153,27 @@
 </style>
 {% endblock %}
 {% block content %}
-<h1 class="mb-2">{% if capability %}Edit {{ capability.name }}{% else %}New MCP Capability{% endif %}</h1>
+<h1 class="mb-2">{% if capability %}Edit {{ capability.name }}{% else %}New Capability{% endif %}</h1>
 
 <div class="cap-form-layout">
     <div class="card cap-form-card">
-        <div class="cap-form-header">
+        <div class="form-group">
+            <label>Capability Kind <span class="req-tag">Required</span></label>
+            <div class="transport-row">
+                <label class="transport-chip" id="chip-kind-mcp">
+                    <input type="radio" name="cap-kind" value="mcp">MCP
+                </label>
+                <label class="transport-chip" id="chip-kind-tool">
+                    <input type="radio" name="cap-kind" value="tool">Tool
+                </label>
+                <label class="transport-chip" id="chip-kind-skill">
+                    <input type="radio" name="cap-kind" value="skill">Skill
+                </label>
+            </div>
+            <p class="field-help">MCP 是远程能力；Tool 是可执行函数；Skill 是 SOP/知识文档，不走 MCP 连接。</p>
+        </div>
+
+        <div class="cap-form-header" id="mcp-guide-header">
             <div class="cap-form-title">MCP Setup Guide</div>
             <div class="help-list">
                 <div class="help-line"><span class="req-tag">Required</span><span><code>Name</code>, <code>Transport</code>, and connection entrypoint.</span></div>
@@ -167,6 +183,18 @@
             <div class="example-box">
                 <button type="button" class="btn btn-outline btn-sm" onclick="applyStdioExample()">Use stdio example</button>
                 <button type="button" class="btn btn-outline btn-sm" onclick="applyStreamableHttpExample()">Use streamable HTTP example</button>
+            </div>
+        </div>
+
+        <div class="cap-form-header" id="skill-guide-header" style="display:none;">
+            <div class="cap-form-title">Skill Setup Guide</div>
+            <div class="help-list">
+                <div class="help-line"><span class="req-tag">Required</span><span>建议填写 <code>Skill Path</code>，指向 `SKILL.md` 或技能目录。</span></div>
+                <div class="help-line"><span class="req-tag">Required</span><span>Skill 和 MCP 不同，不需要 transport/endpoint/command。</span></div>
+                <div class="help-line"><span class="req-tag opt-tag">Optional</span><span>可补充 <code>Entry File</code>、<code>Include Files</code>、内联 <code>Prompt</code> 指令。</span></div>
+            </div>
+            <div class="example-box">
+                <button type="button" class="btn btn-outline btn-sm" onclick="applySkillExample()">Use skill example</button>
             </div>
         </div>
 
@@ -197,7 +225,7 @@
                 <textarea id="description" name="description" rows="2" placeholder="What this MCP server provides...">{{ capability.description if capability and capability.description else '' }}</textarea>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="mcp-transport-group">
                 <label>Transport <span class="req-tag">Required</span></label>
                 <div class="transport-row">
                     <label class="transport-chip" id="chip-stdio">
@@ -212,6 +240,7 @@
                 </div>
             </div>
 
+            <div id="mcp-fields">
             <div id="stdio-fields" style="display:none;">
                 <div class="form-group">
                     <label>Command <span class="req-tag">Required</span></label>
@@ -253,6 +282,56 @@
                         <input type="checkbox" id="long_running_mode" class="toggle">
                         <span class="text-sm text-dim">Keep server for long sessions</span>
                     </label>
+                </div>
+            </div>
+            </div>
+
+            <div id="tool-fields" style="display:none;">
+                <div class="form-group">
+                    <label>Tool Runtime <span class="req-tag">Required</span></label>
+                    <select id="tool-transport">
+                        <option value="local">local (built-in/local map)</option>
+                        <option value="plugin">plugin (python module callable)</option>
+                    </select>
+                </div>
+                <div id="tool-plugin-fields" style="display:none;">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Python Module <span class="req-tag">Required for plugin</span></label>
+                            <input type="text" id="tool-module" placeholder="e.g. my_plugins.tools.weather">
+                        </div>
+                        <div class="form-group">
+                            <label>Callable <span class="req-tag">Required for plugin</span></label>
+                            <input type="text" id="tool-callable" placeholder="e.g. run">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tool Name Override <span class="req-tag opt-tag">Optional</span></label>
+                        <input type="text" id="tool-tool-name" placeholder="e.g. weather_tool">
+                    </div>
+                </div>
+            </div>
+
+            <div id="skill-fields" style="display:none;">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Skill Path <span class="req-tag">Required*</span></label>
+                        <input type="text" id="skill-path" placeholder="e.g. ./data/skills/superpowers/skills/using-superpowers">
+                        <p class="field-help">可填文件路径或目录路径。目录时默认读取 <code>SKILL.md</code>。</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Entry File <span class="req-tag opt-tag">Optional</span></label>
+                        <input type="text" id="skill-entry-file" value="SKILL.md" placeholder="e.g. SKILL.md">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Include Files <span class="req-tag opt-tag">Optional</span></label>
+                    <textarea id="skill-include-files" rows="3" class="mono-area" placeholder="One relative path per line, e.g.&#10;references/ops.md&#10;scripts/bootstrap.py"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Skill Prompt (inline) <span class="req-tag">Required*</span></label>
+                    <textarea id="skill-prompt" rows="4" placeholder="可选：直接写入技能指令文本（当不使用 path 时，此项必填）"></textarea>
+                    <p class="field-help"><code>*</code>Skill 至少要有一个：<code>Skill Path</code> 或 <code>Skill Prompt</code>。</p>
                 </div>
             </div>
 
@@ -398,6 +477,45 @@ function setTransport(value) {
     syncTransportUi();
 }
 
+function setCapabilityKind(value) {
+    const radios = document.querySelectorAll('input[name="cap-kind"]');
+    radios.forEach((radio) => {
+        radio.checked = radio.value === value;
+    });
+    syncCapabilityKindUi();
+}
+
+function getCapabilityKind() {
+    const active = document.querySelector('input[name="cap-kind"]:checked');
+    return active ? active.value : 'mcp';
+}
+
+function syncCapabilityKindUi() {
+    const kind = getCapabilityKind();
+    const isMcp = kind === 'mcp';
+    const isTool = kind === 'tool';
+    const isSkill = kind === 'skill';
+
+    document.getElementById('mcp-guide-header').style.display = isMcp ? 'block' : 'none';
+    document.getElementById('skill-guide-header').style.display = isSkill ? 'block' : 'none';
+
+    document.getElementById('mcp-fields').style.display = isMcp ? 'block' : 'none';
+    document.getElementById('mcp-transport-group').style.display = isMcp ? 'block' : 'none';
+    document.getElementById('tool-fields').style.display = isTool ? 'block' : 'none';
+    document.getElementById('skill-fields').style.display = isSkill ? 'block' : 'none';
+
+    ['mcp', 'tool', 'skill'].forEach((name) => {
+        const chip = document.getElementById(`chip-kind-${name}`);
+        if (!chip) return;
+        chip.classList.toggle('active', kind === name);
+    });
+
+    // MCP required fields.
+    const isStdio = getTransport() === 'stdio';
+    document.getElementById('command').required = isMcp && isStdio;
+    document.getElementById('endpoint_url').required = isMcp && !isStdio;
+}
+
 function getTransport() {
     const active = document.querySelector('input[name="transport"]:checked');
     return active ? active.value : 'streamable_http';
@@ -409,8 +527,9 @@ function syncTransportUi() {
     document.getElementById('stdio-fields').style.display = showStdio ? 'block' : 'none';
     document.getElementById('http-fields').style.display = showStdio ? 'none' : 'block';
 
-    document.getElementById('command').required = showStdio;
-    document.getElementById('endpoint_url').required = !showStdio;
+    const isMcp = getCapabilityKind() === 'mcp';
+    document.getElementById('command').required = isMcp && showStdio;
+    document.getElementById('endpoint_url').required = isMcp && !showStdio;
 
     ['stdio', 'streamable_http', 'sse'].forEach((name) => {
         const chip = document.getElementById(`chip-${name}`);
@@ -420,6 +539,7 @@ function syncTransportUi() {
 }
 
 function applyStdioExample() {
+    setCapabilityKind('mcp');
     setTransport('stdio');
     if (!document.getElementById('name').value.trim()) {
         document.getElementById('name').value = 'Filesystem MCP Server';
@@ -433,6 +553,7 @@ function applyStdioExample() {
 }
 
 function applyStreamableHttpExample() {
+    setCapabilityKind('mcp');
     setTransport('streamable_http');
     if (!document.getElementById('name').value.trim()) {
         document.getElementById('name').value = 'Weather MCP Server';
@@ -442,6 +563,27 @@ function applyStreamableHttpExample() {
     }
     document.getElementById('endpoint_url').value = 'http://localhost:3000/mcp';
     document.getElementById('headers_text').value = 'Content-Type=application/json';
+}
+
+function syncToolUi() {
+    const transport = document.getElementById('tool-transport').value || 'local';
+    const isPlugin = transport === 'plugin';
+    document.getElementById('tool-plugin-fields').style.display = isPlugin ? 'block' : 'none';
+    document.getElementById('tool-module').required = isPlugin;
+    document.getElementById('tool-callable').required = isPlugin;
+}
+
+function applySkillExample() {
+    setCapabilityKind('skill');
+    if (!document.getElementById('name').value.trim()) {
+        document.getElementById('name').value = 'Superpowers: Using Superpowers';
+    }
+    if (!document.getElementById('slug').value.trim()) {
+        document.getElementById('slug').value = 'superpowers-using-superpowers';
+    }
+    document.getElementById('skill-path').value = './data/skills/superpowers/skills/using-superpowers';
+    document.getElementById('skill-entry-file').value = 'SKILL.md';
+    document.getElementById('skill-include-files').value = 'references/codex-tools.md';
 }
 
 function buildConnectionConfig() {
@@ -477,6 +619,40 @@ function buildConnectionConfig() {
     return config;
 }
 
+function buildToolConnectionConfig() {
+    const transport = document.getElementById('tool-transport').value || 'local';
+    const config = {transport};
+    if (transport === 'plugin') {
+        const moduleName = document.getElementById('tool-module').value.trim();
+        const callableName = document.getElementById('tool-callable').value.trim();
+        if (!moduleName || !callableName) {
+            throw new Error('tool plugin requires module and callable');
+        }
+        config.module = moduleName;
+        config.callable = callableName;
+        const toolName = document.getElementById('tool-tool-name').value.trim();
+        if (toolName) config.tool_name = toolName;
+    }
+    return config;
+}
+
+function buildSkillConnectionConfig() {
+    const path = document.getElementById('skill-path').value.trim();
+    const prompt = document.getElementById('skill-prompt').value.trim();
+    if (!path && !prompt) {
+        throw new Error('skill requires skill path or inline prompt');
+    }
+    const config = {};
+    if (path) config.path = path;
+    const entryFile = document.getElementById('skill-entry-file').value.trim();
+    if (entryFile) config.entry_file = entryFile;
+    if (prompt) config.prompt = prompt;
+
+    const includeFiles = parseArgsLines(document.getElementById('skill-include-files').value);
+    if (includeFiles.length) config.include_files = includeFiles;
+    return config;
+}
+
 function buildCapabilityPayload() {
     const name = document.getElementById('name').value.trim();
     const slug = document.getElementById('slug').value.trim();
@@ -489,16 +665,43 @@ function buildCapabilityPayload() {
         .filter(Boolean);
 
     const sourceIdInput = document.getElementById('source_id').value.trim();
+    const kind = getCapabilityKind();
+
+    let type = 'tool';
+    let sourceType = 'custom';
+    let categoryFallback = 'tool';
+    let sourceIdFallback = `${kind}.${slug}`;
+    let connectionConfig = {};
+
+    if (kind === 'mcp') {
+        type = 'tool';
+        sourceType = 'mcp_server';
+        categoryFallback = 'mcp';
+        sourceIdFallback = `mcp.${slug}`;
+        connectionConfig = buildConnectionConfig();
+    } else if (kind === 'tool') {
+        type = 'tool';
+        sourceType = 'custom';
+        categoryFallback = 'tool';
+        sourceIdFallback = `tool.${slug}`;
+        connectionConfig = buildToolConnectionConfig();
+    } else {
+        type = 'prompt';
+        sourceType = 'custom';
+        categoryFallback = 'skill';
+        sourceIdFallback = `skill.${slug}`;
+        connectionConfig = buildSkillConnectionConfig();
+    }
 
     return {
-        kind: 'mcp',
-        type: 'tool',
-        source_type: 'mcp_server',
+        kind,
+        type,
+        source_type: sourceType,
         name,
         slug,
         description: document.getElementById('description').value.trim() || null,
-        source_id: sourceIdInput || `mcp.${slug}`,
-        category: document.getElementById('category').value.trim() || 'mcp',
+        source_id: sourceIdInput || sourceIdFallback,
+        category: document.getElementById('category').value.trim() || categoryFallback,
         version: document.getElementById('version').value.trim() || '0.1.0',
         visibility: document.getElementById('visibility').value || 'public',
         schema_status: null,
@@ -506,7 +709,7 @@ function buildCapabilityPayload() {
         input_schema: parseJsonField('input_schema', document.getElementById('input_schema').value, {"type": "object"}),
         output_schema: parseJsonField('output_schema', document.getElementById('output_schema').value, {"type": "object"}),
         config_schema: parseJsonField('config_schema', document.getElementById('config_schema').value, {"type": "object"}),
-        connection_config: buildConnectionConfig(),
+        connection_config: connectionConfig,
         metadata: parseJsonField('metadata', document.getElementById('metadata').value, {}),
     };
 }
@@ -576,33 +779,59 @@ async function runCapabilityTest() {
 
 function hydrateFromExisting() {
     if (!existingCapability) {
+        setCapabilityKind('mcp');
         setTransport('streamable_http');
+        syncToolUi();
         return;
     }
 
+    setCapabilityKind(existingCapability.kind || 'mcp');
+
     const cfg = existingCapability.connection_config || {};
-    const transportRaw = String(cfg.transport || '').toLowerCase();
-    const transport = (transportRaw === 'http' || transportRaw === 'streamablehttp')
-        ? 'streamable_http'
-        : (transportRaw || 'streamable_http');
-    setTransport(transport);
+    if ((existingCapability.kind || '').toLowerCase() === 'mcp') {
+        const transportRaw = String(cfg.transport || '').toLowerCase();
+        const transport = (transportRaw === 'http' || transportRaw === 'streamablehttp')
+            ? 'streamable_http'
+            : (transportRaw || 'streamable_http');
+        setTransport(transport);
 
-    if (transport === 'stdio') {
-        document.getElementById('command').value = cfg.command || '';
-        document.getElementById('args_text').value = Array.isArray(cfg.args) ? cfg.args.join('\n') : '';
-        document.getElementById('env_text').value = formatKeyValueLines(cfg.env || {});
+        if (transport === 'stdio') {
+            document.getElementById('command').value = cfg.command || '';
+            document.getElementById('args_text').value = Array.isArray(cfg.args) ? cfg.args.join('\n') : '';
+            document.getElementById('env_text').value = formatKeyValueLines(cfg.env || {});
+        } else {
+            document.getElementById('endpoint_url').value = cfg.endpoint_url || '';
+            document.getElementById('headers_text').value = formatKeyValueLines(cfg.headers_template || {});
+        }
+
+        document.getElementById('timeout_s').value = Number.isFinite(Number(cfg.timeout_s)) ? Number(cfg.timeout_s) : 60;
+        document.getElementById('long_running_mode').checked = !!cfg.long_running_mode;
+    } else if ((existingCapability.kind || '').toLowerCase() === 'tool') {
+        document.getElementById('tool-transport').value = cfg.transport || 'local';
+        document.getElementById('tool-module').value = cfg.module || '';
+        document.getElementById('tool-callable').value = cfg.callable || '';
+        document.getElementById('tool-tool-name').value = cfg.tool_name || '';
+        syncToolUi();
     } else {
-        document.getElementById('endpoint_url').value = cfg.endpoint_url || '';
-        document.getElementById('headers_text').value = formatKeyValueLines(cfg.headers_template || {});
+        document.getElementById('skill-path').value = cfg.path || '';
+        document.getElementById('skill-entry-file').value = cfg.entry_file || 'SKILL.md';
+        document.getElementById('skill-prompt').value = cfg.prompt || cfg.instructions || '';
+        document.getElementById('skill-include-files').value = Array.isArray(cfg.include_files)
+            ? cfg.include_files.join('\n')
+            : '';
     }
-
-    document.getElementById('timeout_s').value = Number.isFinite(Number(cfg.timeout_s)) ? Number(cfg.timeout_s) : 60;
-    document.getElementById('long_running_mode').checked = !!cfg.long_running_mode;
 }
 
 document.querySelectorAll('input[name="transport"]').forEach((radio) => {
     radio.addEventListener('change', syncTransportUi);
 });
+document.querySelectorAll('input[name="cap-kind"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+        syncCapabilityKindUi();
+        syncTransportUi();
+    });
+});
+document.getElementById('tool-transport').addEventListener('change', syncToolUi);
 
 const nameInput = document.getElementById('name');
 const slugInput = document.getElementById('slug');
@@ -619,5 +848,7 @@ if (slugInput && !slugInput.readOnly) {
 }
 
 hydrateFromExisting();
+syncCapabilityKindUi();
+syncToolUi();
 </script>
 {% endblock %}

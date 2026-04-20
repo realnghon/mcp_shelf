@@ -4,6 +4,7 @@ from typing import Any
 import aiosqlite
 
 from app.core.db import get_db
+from app.core.config import settings
 from app.schemas.common import new_id, utcnow
 
 
@@ -74,7 +75,7 @@ class SessionRepo:
             "title": data.get("title"),
             "actor_id": data.get("actor_id"),
             "session_status": "idle",
-            "model_key": data.get("model_key", "openai:gpt-4.1"),
+            "model_key": data.get("model_key") or f"openai:{settings.openai_model}",
             "runtime_config": json.dumps(data.get("runtime_config", {})),
             "last_error": None,
             "created_at": now,
@@ -156,6 +157,7 @@ class MessageRepo:
             "session_id": session_id,
             "role": data["role"],
             "content": data.get("content"),
+            "tool_event_type": data.get("tool_event_type") or "result",
             "tool_name": data.get("tool_name"),
             "tool_call_id": data.get("tool_call_id"),
             "tool_args": json.dumps(data["tool_args"]) if isinstance(data.get("tool_args"), (dict, list)) else data.get("tool_args"),
@@ -171,10 +173,20 @@ class MessageRepo:
 
     async def delete(self, session_id: str, message_id: str) -> bool:
         db = await get_db()
-        cursor = await db.execute(
-            "DELETE FROM runtime_messages WHERE session_id = ? AND id = ?",
-            [session_id, message_id],
-        )
+        current = await self.get_by_id(session_id, message_id)
+        if not current:
+            return False
+
+        if current.get("role") == "user":
+            cursor = await db.execute(
+                "DELETE FROM runtime_messages WHERE session_id = ? AND message_index >= ?",
+                [session_id, int(current["message_index"])],
+            )
+        else:
+            cursor = await db.execute(
+                "DELETE FROM runtime_messages WHERE session_id = ? AND id = ?",
+                [session_id, message_id],
+            )
         await db.commit()
         return cursor.rowcount > 0
 

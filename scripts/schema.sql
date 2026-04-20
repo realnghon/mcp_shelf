@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS runtime_messages (
   session_id TEXT NOT NULL,
   role TEXT NOT NULL,                  -- user | assistant | tool | system
   content TEXT,
+  tool_event_type TEXT NOT NULL DEFAULT 'result', -- call | result | error | other
   tool_name TEXT,
   tool_call_id TEXT,
   tool_args TEXT,

@@ -79,10 +79,16 @@ ANTHROPIC_API_KEY=your_key
 ```bash
 mcp-shelf
 # 或
-python -m uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 12138
 ```
 
-打开：`http://localhost:8000`
+打开：`http://localhost:12138`
+
+如果通过 NGINX 挂载到子路径（例如 `/mcp_shelf`），请在 `.env` 中设置：
+
+```env
+ROOT_PATH=/mcp_shelf
+```
 
 ## 初始化市场模板（可选）
 

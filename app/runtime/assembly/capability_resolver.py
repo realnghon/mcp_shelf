@@ -89,8 +89,28 @@ def _extract_prompt_fragment(cap: dict[str, Any], config: dict[str, Any]) -> str
         if not path.is_absolute():
             path = Path.cwd() / path
         try:
-            if path.exists():
-                return path.read_text(encoding="utf-8").strip()
+            if path.is_dir():
+                entry_file = str(config.get("entry_file") or "SKILL.md").strip() or "SKILL.md"
+                entry_path = path / entry_file
+                if entry_path.exists():
+                    return _compose_skill_fragment(
+                        primary_path=entry_path,
+                        include_files=config.get("include_files"),
+                        base_dir=path,
+                    )
+                fallback = path / "SKILL.md"
+                if fallback.exists():
+                    return _compose_skill_fragment(
+                        primary_path=fallback,
+                        include_files=config.get("include_files"),
+                        base_dir=path,
+                    )
+            elif path.exists():
+                return _compose_skill_fragment(
+                    primary_path=path,
+                    include_files=config.get("include_files"),
+                    base_dir=path.parent,
+                )
         except Exception:
             return None
 
@@ -101,3 +121,29 @@ def _extract_prompt_fragment(cap: dict[str, Any], config: dict[str, Any]) -> str
             return metadata_prompt.strip()
     return None
 
+
+def _compose_skill_fragment(
+    primary_path: Path,
+    include_files: Any,
+    base_dir: Path,
+) -> str:
+    fragments: list[str] = []
+    primary_text = primary_path.read_text(encoding="utf-8").strip()
+    if primary_text:
+        fragments.append(primary_text)
+
+    if isinstance(include_files, list):
+        for raw in include_files:
+            rel = str(raw or "").strip()
+            if not rel:
+                continue
+            include_path = base_dir / rel
+            try:
+                if include_path.exists() and include_path.is_file():
+                    included = include_path.read_text(encoding="utf-8").strip()
+                    if included:
+                        fragments.append(f"\n\n# Included: {rel}\n{included}")
+            except Exception:
+                continue
+
+    return "\n".join(fragments).strip()

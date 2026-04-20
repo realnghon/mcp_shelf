@@ -130,9 +130,20 @@
     .msg-row-user { justify-content: flex-end; }
     .msg-row-assistant { justify-content: flex-start; }
     .msg-row-tool { justify-content: flex-start; }
+    .msg-row-tool-group { justify-content: flex-start; }
     .msg-row-system { justify-content: center; }
     .msg-row-tool {
         padding-left: calc(28px + 0.5rem);
+    }
+    .msg-row-tool-group {
+        align-items: flex-start;
+    }
+    .msg-row-tool-group .msg-avatar-assistant {
+        margin-right: 0.5rem;
+        margin-top: 2px;
+    }
+    .msg-row-assistant.assistant-followup .msg-avatar-assistant {
+        visibility: hidden;
     }
     .msg-row.has-actions {
         margin-bottom: 2rem;
@@ -186,28 +197,11 @@
         border-right: 1px solid color-mix(in srgb, #fff 12%, transparent);
     }
     .msg-assistant {
-        background: linear-gradient(
-            180deg,
-            color-mix(in srgb, var(--surface2) 86%, #ffffff 14%),
-            color-mix(in srgb, var(--surface2) 96%, #000000 4%)
-        );
-        border: 1px solid color-mix(in srgb, var(--border) 82%, #ffffff 18%);
-        padding: 0.72rem 1.02rem;
-        border-radius: 20px 20px 20px 7px;
-        box-shadow: 0 8px 18px color-mix(in srgb, #0f172a 9%, transparent);
-    }
-    .msg-assistant::after {
-        content: "";
-        position: absolute;
-        left: -5px;
-        bottom: 8px;
-        width: 10px;
-        height: 10px;
-        transform: rotate(45deg);
-        border-radius: 2px;
-        background: color-mix(in srgb, var(--surface2) 94%, #ffffff 6%);
-        border-left: 1px solid color-mix(in srgb, var(--border) 80%, #ffffff 20%);
-        border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, #ffffff 20%);
+        background: color-mix(in srgb, var(--surface2) 90%, #ffffff 10%);
+        border: 1px solid color-mix(in srgb, var(--border) 88%, #ffffff 12%);
+        padding: 0.85rem 1rem;
+        border-radius: 18px;
+        box-shadow: 0 8px 16px color-mix(in srgb, #0f172a 8%, transparent);
     }
     .msg-tool {
         background: var(--surface);
@@ -288,6 +282,10 @@
         background: color-mix(in srgb, #ffffff 85%, transparent);
         color: #0f172a !important;
     }
+    .msg-content-streaming {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
     .md-content h1, .md-content h2, .md-content h3, .md-content h4 {
         line-height: 1.35;
         margin: 0.35rem 0 0.45rem;
@@ -298,14 +296,36 @@
     .md-content p { margin: 0.2rem 0 0.45rem; }
     .md-content ul, .md-content ol { margin: 0.35rem 0 0.45rem 1.2rem; }
     .md-content li { margin: 0.15rem 0; }
+    .md-content input[type="checkbox"] {
+        margin-right: 0.45rem;
+        transform: translateY(1px);
+    }
     .md-content pre {
+        position: relative;
         margin: 0.35rem 0;
-        padding: 0.6rem 0.7rem;
+        padding: 1.95rem 0.7rem 0.7rem;
         border-radius: 10px;
         border: 1px solid var(--border);
         background: color-mix(in srgb, var(--surface3) 68%, transparent);
         overflow-x: auto;
         font-size: 0.78rem;
+    }
+    .md-content .code-copy-btn {
+        position: absolute;
+        top: 0.38rem;
+        right: 0.42rem;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--surface2) 75%, var(--surface));
+        color: var(--text-dim);
+        font-size: 0.72rem;
+        line-height: 1;
+        padding: 0.24rem 0.45rem;
+        cursor: pointer;
+    }
+    .md-content .code-copy-btn:hover {
+        color: var(--text);
+        background: var(--surface2);
     }
     .md-content code {
         font-family: 'SF Mono', 'Fira Code', monospace;
@@ -362,14 +382,54 @@
         color: var(--text-dim);
     }
     .thought-body .md-content p:last-child { margin-bottom: 0; }
-    .tool-event {
-        background: color-mix(in srgb, var(--surface) 88%, #ffffff 12%);
-        border: 1px solid color-mix(in srgb, var(--border) 88%, #ffffff 12%);
-        border-radius: 16px;
-        max-width: min(76%, 760px);
+    .tool-group {
+        background: color-mix(in srgb, var(--surface) 95%, #ffffff 5%);
+        border: 1px solid color-mix(in srgb, var(--border) 90%, #ffffff 10%);
+        border-radius: 14px;
+        max-width: min(72%, 740px);
         overflow: hidden;
-        font-size: 0.82rem;
-        box-shadow: 0 8px 16px color-mix(in srgb, #0f172a 6%, transparent);
+    }
+    .tool-group-head {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.55rem;
+        padding: 0.48rem 0.62rem;
+        cursor: pointer;
+        background: color-mix(in srgb, var(--surface2) 74%, var(--surface));
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, #ffffff 14%);
+    }
+    .tool-group-head::-webkit-details-marker { display: none; }
+    .tool-group-title {
+        font-size: 0.78rem;
+        color: var(--text);
+        font-weight: 600;
+    }
+    .tool-group-count {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+    }
+    .tool-group-list {
+        display: grid;
+        gap: 0.35rem;
+        padding: 0.45rem;
+    }
+    .tool-group-caret {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        transition: transform 0.15s ease;
+    }
+    .tool-group[open] .tool-group-caret { transform: rotate(90deg); }
+
+    .tool-event {
+        background: color-mix(in srgb, var(--surface) 92%, #ffffff 8%);
+        border: 1px solid color-mix(in srgb, var(--border) 90%, #ffffff 10%);
+        border-radius: 14px;
+        max-width: 100%;
+        overflow: hidden;
+        font-size: 0.8rem;
+        box-shadow: 0 6px 12px color-mix(in srgb, #0f172a 5%, transparent);
     }
     .tool-event-head {
         list-style: none;
@@ -377,7 +437,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 0.75rem;
-        padding: 0.45rem 0.68rem;
+        padding: 0.42rem 0.62rem;
         border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, #ffffff 15%);
         background: color-mix(in srgb, var(--surface2) 65%, var(--surface));
         cursor: pointer;
@@ -432,6 +492,16 @@
         border-color: color-mix(in srgb, var(--success) 40%, var(--border));
         color: var(--success);
         background: var(--success-bg);
+    }
+    .tool-chip.error {
+        border-color: color-mix(in srgb, var(--error) 40%, var(--border));
+        color: var(--error);
+        background: var(--error-bg);
+    }
+    .tool-chip.other {
+        border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+        color: var(--warning);
+        background: var(--warning-bg);
     }
     .tool-event-body {
         padding: 0.55rem 0.68rem 0.62rem;
@@ -523,6 +593,7 @@
         gap: 0.5rem;
         background: color-mix(in srgb, var(--surface2) 35%, var(--surface));
         flex-shrink: 0;
+        position: relative;
     }
     .chat-input input {
         flex: 1;
@@ -534,6 +605,65 @@
     .chat-input .btn-send {
         border-radius: 22px;
         padding: 0.6rem 1.2rem;
+    }
+    .slash-menu {
+        position: absolute;
+        left: clamp(0.8rem, 4.5vw, 8rem);
+        right: clamp(0.8rem, 4.5vw, 8rem);
+        bottom: calc(100% - 4px);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--surface2) 92%, var(--surface));
+        box-shadow: 0 12px 30px color-mix(in srgb, #0f172a 22%, transparent);
+        max-height: 320px;
+        overflow-y: auto;
+        z-index: 10;
+        display: none;
+    }
+    .slash-menu.open {
+        display: block;
+    }
+    .slash-menu-item {
+        padding: 0.58rem 0.74rem;
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, #ffffff 14%);
+        cursor: pointer;
+    }
+    .slash-menu-item:last-child {
+        border-bottom: none;
+    }
+    .slash-menu-item:hover,
+    .slash-menu-item.active {
+        background: color-mix(in srgb, var(--primary-bg) 70%, var(--surface2));
+    }
+    .slash-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        margin-bottom: 0.2rem;
+    }
+    .slash-cmd {
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        font-size: 0.78rem;
+        color: var(--text);
+        font-weight: 600;
+    }
+    .slash-type {
+        font-size: 0.67rem;
+        border-radius: 999px;
+        padding: 0.08rem 0.38rem;
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+    }
+    .slash-desc {
+        font-size: 0.74rem;
+        color: var(--text-dim);
+        line-height: 1.4;
+    }
+    .slash-empty {
+        padding: 0.7rem 0.75rem;
+        font-size: 0.76rem;
+        color: var(--text-dim);
     }
 
     /* ── Right panel (plugins) ── */
@@ -756,10 +886,11 @@
 
         <!-- Input bar -->
         <div class="chat-input">
-            <input type="text" id="user-input" placeholder="Type your message..."
-                   onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendMessage()">
+            <input type="text" id="user-input" placeholder="Type your message... ( /skills, /skill <slug> <task> )"
+                   onkeydown="handleUserInputKeydown(event)">
             <button class="btn btn-primary btn-send" onclick="sendMessage()" id="send-btn">Send</button>
             <button class="btn btn-outline btn-send" onclick="stopSession()" id="stop-btn" style="display:none;">Stop</button>
+            <div id="slash-menu" class="slash-menu"></div>
         </div>
         </div>
     </div>
@@ -821,7 +952,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const DEFAULT_MODEL = '{{ default_model }}';
 let currentSessionId = null;
@@ -832,6 +962,15 @@ let thinkingTicker = null;
 let thinkingStartedAt = 0;
 let activeEditingMessageId = null;
 let lastBindingSelectValue = '';
+let activeToolGroupRow = null;
+const ENABLE_ASSISTANT_DELETE = false;
+const slashMenuState = {
+    items: [],
+    activeIndex: -1,
+    open: false,
+    skills: [],
+    loadedAt: 0,
+};
 
 // Temperature slider
 const tempSlider = document.getElementById('temp-slider');
@@ -840,6 +979,7 @@ tempSlider.addEventListener('input', () => { tempValue.textContent = tempSlider.
 
 document.addEventListener('DOMContentLoaded', async () => {
     setupMessageActions();
+    setupSlashAutocomplete();
     syncPanelMode();
     window.addEventListener('resize', syncPanelMode);
     const bindingSelect = document.getElementById('binding-select');
@@ -848,6 +988,306 @@ document.addEventListener('DOMContentLoaded', async () => {
         bindingSelect.addEventListener('change', onBindingChange);
     }
 });
+
+function setupSlashAutocomplete() {
+    const input = document.getElementById('user-input');
+    if (!input) return;
+    input.addEventListener('input', refreshSlashMenu);
+    input.addEventListener('focus', refreshSlashMenu);
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Node)) return;
+        const inInput = input.contains(target);
+        const menu = document.getElementById('slash-menu');
+        const inMenu = !!(menu && menu.contains(target));
+        if (!inInput && !inMenu) {
+            closeSlashMenu();
+        }
+    });
+}
+
+async function loadActiveSkills(force = false) {
+    const now = Date.now();
+    if (!force && slashMenuState.skills.length && now - slashMenuState.loadedAt < 60000) {
+        return slashMenuState.skills;
+    }
+    const allItems = [];
+    let page = 1;
+    let total = 0;
+    do {
+        const resp = await fetch(`/api/capabilities?kind=skill&status=active&page=${page}&page_size=100&sort_by=name&sort_order=asc`);
+        if (!resp.ok) {
+            throw new Error('Failed to load skills');
+        }
+        const payload = await resp.json();
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        total = Number(payload.total || 0);
+        allItems.push(...items);
+        if (!items.length) {
+            break;
+        }
+        page += 1;
+    } while (allItems.length < total);
+
+    const skills = allItems.map((item) => {
+        const slug = String(item.slug || '');
+        const sourceId = String(item.source_id || '');
+        let pack = 'skills';
+        if (sourceId.startsWith('skill.')) {
+            const parts = sourceId.split('.');
+            if (parts.length >= 3 && parts[1]) {
+                pack = parts[1];
+            }
+        } else if (slug.includes('-')) {
+            pack = slug.split('-')[0] || 'skills';
+        }
+        const prefix = `${pack}-`;
+        const shortSlug = slug.startsWith(prefix) ? slug.slice(prefix.length) : slug;
+        return {
+            id: item.id,
+            slug,
+            shortSlug,
+            pack,
+            name: item.name,
+            description: item.description || '',
+            invokeToken: pack === 'superpowers' ? (shortSlug || slug) : slug,
+        };
+    });
+    slashMenuState.skills = skills;
+    slashMenuState.loadedAt = now;
+    return skills;
+}
+
+async function refreshSlashMenu() {
+    const input = document.getElementById('user-input');
+    if (!input) return;
+    const text = input.value || '';
+    if (!text.startsWith('/')) {
+        closeSlashMenu();
+        return;
+    }
+
+    const lower = text.toLowerCase();
+    const items = [];
+    const baseCommands = [
+        {
+            key: 'cmd-skills',
+            type: 'command',
+            command: '/skills',
+            description: '列出当前可用技能',
+        },
+        {
+            key: 'cmd-skill',
+            type: 'command',
+            command: '/skill',
+            description: '按 slug 挂载技能并执行本轮任务',
+        },
+    ];
+
+    const skillQueryFromRoot = lower.startsWith('/') ? lower.slice(1).trim() : '';
+
+    if (lower.startsWith('/skill')) {
+        let query = '';
+        let hasObjective = false;
+        const rest = text.slice('/skill'.length);
+        if (rest.startsWith(' ')) {
+            const body = rest.slice(1);
+            if (body.includes(' -- ')) {
+                const [lhs, rhs] = body.split(' -- ', 2);
+                query = (lhs || '').trim();
+                hasObjective = !!(rhs || '').trim();
+            } else {
+                const firstSpace = body.indexOf(' ');
+                if (firstSpace === -1) {
+                    query = body.trim();
+                } else {
+                    query = body.slice(0, firstSpace).trim();
+                    hasObjective = !!body.slice(firstSpace + 1).trim();
+                }
+            }
+        } else if (rest.trim()) {
+            query = rest.trim();
+        }
+
+        if (!hasObjective) {
+            try {
+                const skills = await loadActiveSkills();
+                const rawNeedle = query.toLowerCase();
+                const filtered = skills.filter((s) => {
+                    if (!rawNeedle) return true;
+                    if (s.slug.toLowerCase().includes(rawNeedle)) return true;
+                    if (s.shortSlug.toLowerCase().includes(rawNeedle)) return true;
+                    if (`${s.pack}/${s.shortSlug}`.toLowerCase().includes(rawNeedle)) return true;
+                    if ((s.name || '').toLowerCase().includes(rawNeedle)) return true;
+                    return false;
+                });
+                for (const s of filtered) {
+                    items.push({
+                        key: `skill-${s.slug}`,
+                        type: 'skill',
+                        slug: s.slug,
+                        shortSlug: s.shortSlug,
+                        pack: s.pack,
+                        invokeToken: s.invokeToken,
+                        name: s.name,
+                        description: s.description,
+                    });
+                }
+            } catch {
+                // keep empty and show command tips
+            }
+            if (!query || '/skill'.startsWith(lower)) {
+                items.unshift(baseCommands[1]);
+            }
+        }
+    } else {
+        for (const cmd of baseCommands) {
+            if (cmd.command.startsWith(lower)) {
+                items.push(cmd);
+            }
+        }
+        try {
+            const skills = await loadActiveSkills();
+            const filtered = skills.filter((s) => {
+                if (!skillQueryFromRoot) return true;
+                if ('skill'.startsWith(skillQueryFromRoot)) return true;
+                if ('skills'.startsWith(skillQueryFromRoot)) return true;
+                if (s.invokeToken.toLowerCase().includes(skillQueryFromRoot)) return true;
+                if (s.slug.toLowerCase().includes(skillQueryFromRoot)) return true;
+                if ((s.name || '').toLowerCase().includes(skillQueryFromRoot)) return true;
+                return false;
+            });
+            for (const s of filtered) {
+                items.push({
+                    key: `skill-${s.slug}`,
+                    type: 'skill',
+                    slug: s.slug,
+                    shortSlug: s.shortSlug,
+                    pack: s.pack,
+                    invokeToken: s.invokeToken,
+                    name: s.name,
+                    description: s.description,
+                });
+            }
+        } catch {
+            // keep base commands only
+        }
+    }
+
+    if (!items.length) {
+        closeSlashMenu();
+        return;
+    }
+    openSlashMenu(items);
+}
+
+function openSlashMenu(items) {
+    const menu = document.getElementById('slash-menu');
+    if (!menu) return;
+    slashMenuState.items = items;
+    slashMenuState.activeIndex = 0;
+    slashMenuState.open = true;
+    renderSlashMenu();
+    menu.classList.add('open');
+}
+
+function closeSlashMenu() {
+    const menu = document.getElementById('slash-menu');
+    if (!menu) return;
+    slashMenuState.items = [];
+    slashMenuState.activeIndex = -1;
+    slashMenuState.open = false;
+    menu.classList.remove('open');
+    menu.innerHTML = '';
+}
+
+function renderSlashMenu() {
+    const menu = document.getElementById('slash-menu');
+    if (!menu) return;
+    if (!slashMenuState.items.length) {
+        menu.innerHTML = '<div class="slash-empty">No commands available.</div>';
+        return;
+    }
+    menu.innerHTML = '';
+    slashMenuState.items.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = `slash-menu-item${idx === slashMenuState.activeIndex ? ' active' : ''}`;
+        row.innerHTML = `
+            <div class="slash-main">
+                <span class="slash-cmd">${escapeHtml(
+                    item.type === 'skill'
+                        ? `/skill ${item.invokeToken || item.slug}`
+                            : item.command
+                )}</span>
+                <span class="slash-type">${escapeHtml(
+                    item.type === 'skill'
+                        ? 'skill'
+                            : 'command'
+                )}</span>
+            </div>
+            <div class="slash-desc">${escapeHtml(
+                item.type === 'skill'
+                    ? `${item.name || item.slug} · ${item.pack}`
+                    : (item.description || '')
+            )}</div>
+        `;
+        row.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            applySlashSelection(idx);
+        });
+        menu.appendChild(row);
+    });
+}
+
+function moveSlashActive(delta) {
+    if (!slashMenuState.open || !slashMenuState.items.length) return;
+    const total = slashMenuState.items.length;
+    slashMenuState.activeIndex = (slashMenuState.activeIndex + delta + total) % total;
+    renderSlashMenu();
+}
+
+function applySlashSelection(index) {
+    const input = document.getElementById('user-input');
+    if (!input) return;
+    const item = slashMenuState.items[index];
+    if (!item) return;
+    if (item.type === 'command') {
+        input.value = item.command === '/skill' ? '/skill ' : item.command;
+    } else {
+        input.value = `/skill ${item.invokeToken || item.slug} `;
+    }
+    closeSlashMenu();
+    input.focus();
+}
+
+function handleUserInputKeydown(event) {
+    if (slashMenuState.open && slashMenuState.items.length) {
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            moveSlashActive(1);
+            return;
+        }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            moveSlashActive(-1);
+            return;
+        }
+        if (event.key === 'Tab' || event.key === 'Enter') {
+            event.preventDefault();
+            applySlashSelection(slashMenuState.activeIndex >= 0 ? slashMenuState.activeIndex : 0);
+            return;
+        }
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeSlashMenu();
+            return;
+        }
+    }
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
 
 // Toggle plugin panel
 function togglePanel() {
@@ -999,28 +1439,98 @@ async function loadSession(sessionId) {
         const messages = await resp.json();
         const container = document.getElementById('chat-messages');
         container.innerHTML = '';
-        for (const msg of messages) {
-            appendMessage(msg);
+        let historyToolGroup = null;
+        let assistantAfterTools = false;
+        let deferredAssistantAfterGroup = null;
+        for (let idx = 0; idx < messages.length; idx++) {
+            const msg = messages[idx];
+            const nextMsg = idx + 1 < messages.length ? messages[idx + 1] : null;
+
+            if (
+                msg.role === 'assistant'
+                && nextMsg
+                && nextMsg.role === 'tool'
+                && !historyToolGroup
+            ) {
+                deferredAssistantAfterGroup = msg;
+                continue;
+            }
+
+            if (msg.role === 'tool') {
+                if (!historyToolGroup) {
+                    historyToolGroup = createToolGroupRow({ title: '工具调用', count: 0, open: false });
+                    container.appendChild(historyToolGroup);
+                }
+                const kind = String(msg.tool_event_type || '').trim().toLowerCase()
+                    || ((!msg.tool_result && !!msg.tool_args) ? 'call' : 'result');
+                const payload = kind === 'call'
+                    ? msg.tool_args
+                    : (msg.tool_result || msg.content || '');
+                appendToolEventToGroup(historyToolGroup, kind, msg.tool_name || 'tool', payload);
+                assistantAfterTools = true;
+
+                const isLastToolInGroup = !nextMsg || nextMsg.role !== 'tool';
+                if (isLastToolInGroup && deferredAssistantAfterGroup) {
+                    appendMessageWithOptions(deferredAssistantAfterGroup, { assistantContinuation: true });
+                    deferredAssistantAfterGroup = null;
+                    assistantAfterTools = false;
+                }
+                continue;
+            }
+            historyToolGroup = null;
+            if (msg.role === 'assistant' && assistantAfterTools) {
+                appendMessageWithOptions(msg, { assistantContinuation: true });
+            } else {
+                appendMessage(msg);
+            }
+            assistantAfterTools = false;
+        }
+        if (deferredAssistantAfterGroup) {
+            appendMessage(deferredAssistantAfterGroup);
         }
         container.scrollTop = container.scrollHeight;
     }
 }
 
 function appendMessage(msg) {
+    return appendMessageWithOptions(msg, {});
+}
+
+function appendMessageWithOptions(msg, options = {}) {
     const container = document.getElementById('chat-messages');
     if (!container) return;
+    let appended = null;
 
     if (msg.role === 'user') {
-        container.appendChild(buildUserRow(msg.content || '', msg.id || null));
+        appended = buildUserRow(msg.content || '', msg.id || null);
+        container.appendChild(appended);
     } else if (msg.role === 'assistant') {
-        container.appendChild(buildAssistantRow(msg.content || '', false, msg.id || null));
+        if (!String(msg.content || '').trim()) {
+            return;
+        }
+        appended = buildAssistantRow(msg.content || '', false, msg.id || null);
+        if (options.assistantContinuation) {
+            appended.classList.add('assistant-followup');
+        }
+        container.appendChild(appended);
     } else if (msg.role === 'tool') {
-        container.appendChild(buildToolRow('result', msg.tool_name || 'tool', msg.tool_result || msg.content || ''));
+        const isCall = (String(msg.tool_event_type || '').trim().toLowerCase() === 'call')
+            || (!msg.tool_result && !!msg.tool_args);
+        appended = buildToolRow(
+            isCall ? 'call' : 'result',
+            msg.tool_name || 'tool',
+            isCall ? msg.tool_args : (msg.tool_result || msg.content || ''),
+        );
+        container.appendChild(appended);
     } else if (msg.role === 'system') {
         const row = document.createElement('div');
         row.className = 'msg-row msg-row-system';
         row.innerHTML = `<div class="msg msg-system"><div class="msg-content">${escapeHtml(msg.content || '')}</div></div>`;
         container.appendChild(row);
+        appended = row;
+    }
+    if (appended) {
+        enhanceCodeBlocks(appended);
     }
     container.scrollTop = container.scrollHeight;
 }
@@ -1045,12 +1555,12 @@ function buildAssistantRow(content, streaming, messageId = null) {
     row.className = 'msg-row msg-row-assistant';
     if (messageId) row.dataset.messageId = messageId;
     row.dataset.role = 'assistant';
-    if (messageId) row.classList.add('has-actions');
+    if (messageId && ENABLE_ASSISTANT_DELETE) row.classList.add('has-actions');
     const body = renderAssistantBody(content, {streaming});
     row.innerHTML = `
         <div class="msg-avatar msg-avatar-assistant">AI</div>
         <div class="msg msg-assistant">
-            ${buildMessageActions('assistant', !!messageId)}
+            ${buildMessageActions('assistant', !!messageId && ENABLE_ASSISTANT_DELETE)}
             ${body}
         </div>`;
     return row;
@@ -1065,9 +1575,7 @@ function buildMessageActions(role, canDelete) {
             </div>`;
     }
     if (role === 'assistant') {
-        return canDelete
-            ? '<div class="msg-actions"><button type="button" class="msg-action-btn danger" data-msg-action="delete" title="Delete message">×</button></div>'
-            : '';
+        return '';
     }
     return '';
 }
@@ -1179,9 +1687,6 @@ function renderMessageActions(row, mode = 'normal') {
         actions.innerHTML = `
             <button type="button" class="msg-action-btn" data-msg-action="edit" title="Edit and regenerate">✎</button>
             <button type="button" class="msg-action-btn danger" data-msg-action="delete" title="Delete message">×</button>`;
-    } else if (role === 'assistant') {
-        actions.innerHTML = `
-            <button type="button" class="msg-action-btn danger" data-msg-action="delete" title="Delete message">×</button>`;
     }
 }
 
@@ -1239,15 +1744,54 @@ async function deleteMessageRow(row) {
     alert('Failed to delete this message.');
 }
 
-function buildToolRow(kind, toolName, payload) {
+function createToolGroupRow({ title = '工具调用', count = 0, open = true } = {}) {
     const row = document.createElement('div');
-    row.className = 'msg-row msg-row-tool';
-    const chipClass = kind === 'call' ? 'call' : 'result';
-    const chipText = kind === 'call' ? 'Tool Call' : 'Tool Result';
+    row.className = 'msg-row msg-row-tool-group';
+    row.innerHTML = `
+        <div class="msg-avatar msg-avatar-assistant">AI</div>
+        <details class="tool-group"${open ? ' open' : ''}>
+            <summary class="tool-group-head">
+                <span style="display:flex;align-items:center;gap:0.45rem;">
+                    <span class="tool-group-caret">▶</span>
+                    <span class="tool-group-title">${escapeHtml(title)}</span>
+                </span>
+                <span class="tool-group-count">${count} 条</span>
+            </summary>
+            <div class="tool-group-list"></div>
+        </details>`;
+    return row;
+}
+
+function updateToolGroupCount(groupRow) {
+    const list = groupRow.querySelector('.tool-group-list');
+    const count = list ? list.children.length : 0;
+    const countEl = groupRow.querySelector('.tool-group-count');
+    if (countEl) countEl.textContent = `${count} 条`;
+}
+
+function appendToolEventToGroup(groupRow, kind, toolName, payload) {
+    const list = groupRow.querySelector('.tool-group-list');
+    if (!list) return;
+    const item = buildToolEventItem(kind, toolName, payload);
+    list.appendChild(item);
+    updateToolGroupCount(groupRow);
+}
+
+function buildToolEventItem(kind, toolName, payload) {
+    const normalizedKind = String(kind || '').trim().toLowerCase() || 'result';
+    const chipClass = ['call', 'result', 'error'].includes(normalizedKind) ? normalizedKind : 'other';
+    const chipText = normalizedKind === 'call'
+        ? 'Tool Call'
+        : normalizedKind === 'result'
+            ? 'Tool Result'
+            : normalizedKind === 'error'
+                ? 'Tool Error'
+                : `Tool ${normalizedKind.toUpperCase()}`;
     const body = normalizePrettyPayload(payload);
     const firstLine = (body || '').split('\n')[0].trim();
     const preview = firstLine.length > 96 ? firstLine.slice(0, 96) + '…' : firstLine;
-    row.innerHTML = `
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = `
         <details class="tool-event">
             <summary class="tool-event-head">
                 <span class="tool-head-meta">
@@ -1263,6 +1807,13 @@ function buildToolRow(kind, toolName, payload) {
                 <pre>${escapeHtml(body)}</pre>
             </div>
         </details>`;
+    return wrapper.firstElementChild;
+}
+
+function buildToolRow(kind, toolName, payload) {
+    const row = document.createElement('div');
+    row.className = 'msg-row msg-row-tool';
+    row.appendChild(buildToolEventItem(kind, toolName, payload));
     return row;
 }
 
@@ -1280,7 +1831,9 @@ function renderAssistantBody(content, options = {}) {
     }).join('');
 
     const main = parsed.visible.trim()
-        ? `<div class="md-content">${renderMarkdown(parsed.visible)}</div>`
+        ? (options.streaming
+            ? `<div class="msg-content msg-content-streaming">${escapeHtml(parsed.visible)}</div>`
+            : `<div class="md-content">${renderMarkdown(parsed.visible)}</div>`)
         : `<div class="md-content text-dim text-sm">${options.streaming ? 'Thinking...' : ''}</div>`;
     return `${thoughtHtml}${main}`;
 }
@@ -1300,10 +1853,117 @@ function parseThoughtBlocks(rawText) {
 
 function renderMarkdown(markdownText) {
     const text = String(markdownText || '');
-    if (window.marked && typeof window.marked.parse === 'function') {
-        return sanitizeHtml(window.marked.parse(text, {breaks: true, gfm: true}));
+    return sanitizeHtml(renderMarkdownFallback(text));
+}
+
+function renderMarkdownFallback(raw) {
+    const source = String(raw || '').replace(/\r\n/g, '\n');
+    const lines = source.split('\n');
+    const html = [];
+    const para = [];
+    let listType = null;
+    let listItems = [];
+    let inCode = false;
+    let codeLang = '';
+    let codeLines = [];
+
+    const flushParagraph = () => {
+        if (!para.length) return;
+        const text = para.join('<br>');
+        html.push(`<p>${formatInline(text)}</p>`);
+        para.length = 0;
+    };
+    const flushList = () => {
+        if (!listType || !listItems.length) {
+            listType = null;
+            listItems = [];
+            return;
+        }
+        const items = listItems.map((item) => `<li>${item}</li>`).join('');
+        html.push(`<${listType}>${items}</${listType}>`);
+        listType = null;
+        listItems = [];
+    };
+    const flushCode = () => {
+        const code = escapeHtml(codeLines.join('\n'));
+        const langClass = codeLang ? ` class="language-${escapeHtml(codeLang)}"` : '';
+        html.push(`<pre><code${langClass}>${code}</code></pre>`);
+        inCode = false;
+        codeLang = '';
+        codeLines = [];
+    };
+
+    for (const lineRaw of lines) {
+        const line = lineRaw;
+        const trimmed = line.trim();
+
+        const fence = trimmed.match(/^```([\w-]+)?$/);
+        if (fence) {
+            flushParagraph();
+            flushList();
+            if (inCode) {
+                flushCode();
+            } else {
+                inCode = true;
+                codeLang = fence[1] || '';
+                codeLines = [];
+            }
+            continue;
+        }
+        if (inCode) {
+            codeLines.push(line);
+            continue;
+        }
+        if (!trimmed) {
+            flushParagraph();
+            flushList();
+            continue;
+        }
+
+        const heading = trimmed.match(/^(#{1,4})\s+(.+)$/);
+        if (heading) {
+            flushParagraph();
+            flushList();
+            const level = heading[1].length;
+            html.push(`<h${level}>${formatInline(escapeHtml(heading[2].trim()))}</h${level}>`);
+            continue;
+        }
+
+        const ul = trimmed.match(/^[-*]\s+(.+)$/);
+        const ol = trimmed.match(/^\d+\.\s+(.+)$/);
+        if (ul || ol) {
+            flushParagraph();
+            const nextType = ul ? 'ul' : 'ol';
+            const itemText = (ul ? ul[1] : ol[1]) || '';
+            if (listType && listType !== nextType) {
+                flushList();
+            }
+            listType = nextType;
+            const todo = itemText.match(/^\[( |x|X)\]\s+(.*)$/);
+            if (todo) {
+                const checked = /x/i.test(todo[1]) ? ' checked' : '';
+                listItems.push(`<input type="checkbox" disabled${checked}>${formatInline(escapeHtml(todo[2]))}`);
+            } else {
+                listItems.push(formatInline(escapeHtml(itemText)));
+            }
+            continue;
+        }
+
+        para.push(escapeHtml(line));
     }
-    return `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
+    if (inCode) {
+        flushCode();
+    }
+    flushParagraph();
+    flushList();
+    return html.join('');
+}
+
+function formatInline(text) {
+    return String(text || '')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 }
 
 function sanitizeHtml(html) {
@@ -1372,6 +2032,33 @@ async function sendMessage() {
     await runCurrentSessionStream();
 }
 
+function enhanceCodeBlocks(scope) {
+    const root = scope || document;
+    root.querySelectorAll('.md-content pre').forEach((pre) => {
+        if (pre.dataset.copyReady === '1') return;
+        pre.dataset.copyReady = '1';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'code-copy-btn';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const code = pre.querySelector('code');
+            const text = code ? code.textContent || '' : pre.textContent || '';
+            try {
+                await navigator.clipboard.writeText(text);
+                btn.textContent = 'Copied';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+            } catch {
+                btn.textContent = 'Failed';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+            }
+        });
+        pre.appendChild(btn);
+    });
+}
+
 async function runCurrentSessionStream() {
     if (!currentSessionId) return;
     if (eventSource) {
@@ -1390,17 +2077,29 @@ async function runCurrentSessionStream() {
     // SSE streaming
     eventSource = new EventSource(`/api/sessions/${currentSessionId}/stream`);
     let assistantContent = '';
+    let hasStreamedToken = false;
+    activeToolGroupRow = null;
 
     eventSource.addEventListener('token', (e) => {
         const data = JSON.parse(e.data);
-        const typingRow = document.getElementById('typing-row');
-        if (typingRow) {
-            stopThinkingTicker();
-            assistantContent += data.content || '';
-            typingRow.replaceWith(buildStreamingRow(assistantContent));
-            document.getElementById('typing-row')?.setAttribute('id', 'typing-row');
-            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+        hasStreamedToken = true;
+        assistantContent += data.content || '';
+        let typingRow = document.getElementById('typing-row');
+        if (!typingRow) {
+            typingRow = buildStreamingRow('');
+            document.getElementById('chat-messages').appendChild(typingRow);
         }
+        stopThinkingTicker();
+        if (!typingRow.querySelector('.msg-content-streaming')) {
+            typingRow.replaceWith(buildStreamingRow(''));
+            typingRow = document.getElementById('typing-row');
+            if (!typingRow) return;
+        }
+        const contentEl = typingRow.querySelector('.msg-content-streaming');
+        if (contentEl) {
+            contentEl.textContent = assistantContent;
+        }
+        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
     });
 
     eventSource.addEventListener('tool_call', (e) => {
@@ -1410,17 +2109,22 @@ async function runCurrentSessionStream() {
             stopThinkingTicker();
             typingRow.remove();
         }
-        if (assistantContent) appendMessage({role: 'assistant', content: assistantContent});
-        assistantContent = '';
-        document.getElementById('chat-messages').appendChild(
-            buildToolRow('call', data.tool_name || 'tool', data.tool_args),
-        );
+        if (!activeToolGroupRow) {
+            activeToolGroupRow = createToolGroupRow({ title: '工具调用', count: 0, open: true });
+            document.getElementById('chat-messages').appendChild(activeToolGroupRow);
+        }
+        appendToolEventToGroup(activeToolGroupRow, 'call', data.tool_name || 'tool', data.tool_args);
         document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
     });
 
     eventSource.addEventListener('tool_result', (e) => {
         const data = JSON.parse(e.data);
-        appendMessage({role: 'tool', tool_name: data.tool_name, tool_result: data.tool_result});
+        if (!activeToolGroupRow) {
+            activeToolGroupRow = createToolGroupRow({ title: '工具调用', count: 0, open: true });
+            document.getElementById('chat-messages').appendChild(activeToolGroupRow);
+        }
+        appendToolEventToGroup(activeToolGroupRow, 'result', data.tool_name || 'tool', data.tool_result);
+        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
     });
 
     eventSource.addEventListener('done', (e) => {
@@ -1430,8 +2134,14 @@ async function runCurrentSessionStream() {
             stopThinkingTicker();
             typingRow.remove();
         }
-        const finalContent = data.content || assistantContent;
-        if (finalContent) appendMessage({role: 'assistant', content: finalContent});
+        const finalContent = hasStreamedToken ? assistantContent : (data.content || assistantContent);
+        if (finalContent) {
+            appendMessageWithOptions(
+                {role: 'assistant', content: finalContent},
+                {assistantContinuation: !!activeToolGroupRow},
+            );
+        }
+        activeToolGroupRow = null;
         finishRun();
     });
 
@@ -1449,6 +2159,7 @@ async function runCurrentSessionStream() {
         }
         const message = (data && data.message) ? data.message : 'Unknown error';
         appendMessage({role: 'system', content: `Error: ${message}`});
+        activeToolGroupRow = null;
         finishRun();
     });
 
@@ -1458,6 +2169,7 @@ async function runCurrentSessionStream() {
             stopThinkingTicker();
             typingRow.remove();
         }
+        activeToolGroupRow = null;
         finishRun();
     };
 }
@@ -1487,8 +2199,15 @@ function escapeHtml(text) {
 }
 
 function buildStreamingRow(content) {
-    const row = buildAssistantRow(content, true);
+    const row = document.createElement('div');
+    row.className = 'msg-row msg-row-assistant';
+    row.dataset.role = 'assistant';
     row.id = 'typing-row';
+    row.innerHTML = `
+        <div class="msg-avatar msg-avatar-assistant">AI</div>
+        <div class="msg msg-assistant">
+            <div class="msg-content msg-content-streaming">${escapeHtml(content)}</div>
+        </div>`;
     return row;
 }
 

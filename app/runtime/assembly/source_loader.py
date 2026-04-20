@@ -10,6 +10,7 @@ async def load_sources(state: AgentState) -> dict[str, Any]:
     """Load binding-level sources and initial capability references."""
     binding_id = state.get("binding_id")
     selected_capabilities: list[dict[str, Any]] = []
+    ad_hoc_capabilities: list[dict[str, Any]] = list(state.get("ad_hoc_capabilities", []))
     max_steps = int(state.get("max_steps", 8))
     messages = list(state.get("messages", []))
     binding: dict[str, Any] | None = None
@@ -33,6 +34,17 @@ async def load_sources(state: AgentState) -> dict[str, Any]:
                 if c["is_enabled"]
             ]
 
+    if ad_hoc_capabilities:
+        merged: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for item in [*selected_capabilities, *ad_hoc_capabilities]:
+            cap_id = str(item.get("capability_id") or "").strip()
+            if not cap_id or cap_id in seen:
+                continue
+            seen.add(cap_id)
+            merged.append(item)
+        selected_capabilities = merged
+
     return {
         "binding": binding,
         "messages": messages,
@@ -41,4 +53,3 @@ async def load_sources(state: AgentState) -> dict[str, Any]:
         "current_step": 0,
         "error": None,
     }
-

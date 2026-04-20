@@ -9,13 +9,16 @@ from app.core.config import settings
 from app.core.db import init_db, close_db
 from app.core.logging import setup_logging
 from app.core.paths import ensure_data_dirs
+from app.core.seed_data import ensure_skill_seed_files, seed_default_capabilities
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
     ensure_data_dirs()
+    ensure_skill_seed_files()
     await init_db()
+    await seed_default_capabilities(prune_missing=True)
     yield
     await close_db()
 
@@ -25,6 +28,7 @@ app = FastAPI(
     description="MCP / Tool / Skill Registry + Binding Config + Playground",
     version="0.1.0",
     lifespan=lifespan,
+    root_path=settings.root_path,
 )
 
 # Static files
@@ -43,6 +47,7 @@ from app.routers import audit as audit_router  # noqa: E402
 from app.routers import import_export as ie_router  # noqa: E402
 from app.routers import llm_configs as llm_router  # noqa: E402
 from app.routers import backup as backup_router  # noqa: E402
+from app.routers import skills as skills_router  # noqa: E402
 
 app.include_router(page_router.router)
 app.include_router(cap_router.router, prefix="/api/capabilities", tags=["capabilities"])
@@ -54,6 +59,7 @@ app.include_router(audit_router.router, prefix="/api/audit", tags=["audit"])
 app.include_router(ie_router.router, prefix="/api", tags=["import-export"])
 app.include_router(llm_router.router, prefix="/api/llm-configs", tags=["llm-configs"])
 app.include_router(backup_router.router, prefix="/api", tags=["backup"])
+app.include_router(skills_router.router, prefix="/api/skills", tags=["skills"])
 
 
 def cli():

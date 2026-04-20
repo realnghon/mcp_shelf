@@ -14,7 +14,7 @@ from app.core.db import get_db
 logger = logging.getLogger(__name__)
 
 # Current schema version - bump this when schema changes
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 6
 
 # Migrations: index 0 = v0->v1, index 1 = v1->v2, etc.
 MIGRATIONS: list[str] = [
@@ -64,6 +64,16 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX IF NOT EXISTS idx_capability_tests_capability_id
         ON capability_tests(capability_id, tested_at DESC);
+    """,
+    # v3 -> v4: Add tool event type for runtime_messages
+    """ALTER TABLE runtime_messages
+       ADD COLUMN tool_event_type TEXT NOT NULL DEFAULT 'result';
+    """,
+    # v4 -> v5: Cleanup legacy placeholder binding records
+    """-- no-op; handled in python migration helper for compatibility checks
+    """,
+    # v5 -> v6: Cleanup legacy placeholder echo capability records
+    """-- no-op; handled in python migration helper for compatibility checks
     """,
 ]
 
@@ -119,6 +129,60 @@ async def _ensure_v3_capability_fields(db: aiosqlite.Connection):
     await db.commit()
 
 
+async def _ensure_v4_runtime_message_fields(db: aiosqlite.Connection):
+    if not await _table_exists(db, "runtime_messages"):
+        return
+    if not await _column_exists(db, "runtime_messages", "tool_event_type"):
+        await db.execute(
+            "ALTER TABLE runtime_messages ADD COLUMN tool_event_type TEXT NOT NULL DEFAULT 'result'"
+        )
+    await db.commit()
+
+
+async def _cleanup_v5_legacy_placeholder_bindings(db: aiosqlite.Connection):
+    if not await _table_exists(db, "bindings"):
+        return
+
+    await db.execute(
+        """
+        DELETE FROM bindings
+        WHERE
+            lower(replace(name, '_', ' ')) = 'test agent'
+            AND (description IS NULL OR trim(description) = '')
+            AND model_key = 'openai:gpt-4.1'
+            AND coalesce(system_prompt, '') = 'You are a test agent.'
+            AND max_steps = 5
+            AND allow_shell = 0
+            AND visibility = 'private'
+            AND NOT EXISTS (
+                SELECT 1 FROM binding_capabilities bc WHERE bc.binding_id = bindings.id
+            )
+        """
+    )
+    await db.commit()
+
+
+async def _cleanup_v6_legacy_placeholder_echo_capability(db: aiosqlite.Connection):
+    if not await _table_exists(db, "capabilities"):
+        return
+
+    await db.execute(
+        """
+        DELETE FROM capabilities
+        WHERE
+            slug = 'echo-tool'
+            AND name = 'Echo Tool'
+            AND coalesce(description, '') = 'Simple echo tool'
+            AND kind = 'tool'
+            AND source_type = 'custom'
+            AND coalesce(category, '') = 'utility'
+            AND version = '0.1.0'
+            AND status = 'active'
+        """
+    )
+    await db.commit()
+
+
 async def get_schema_version(db: aiosqlite.Connection) -> int:
     """Get current schema version from _meta table."""
     try:
@@ -165,6 +229,14 @@ async def run_migrations():
         current_version = 2
         if await _column_exists(db, "capabilities", "type"):
             current_version = 3
+        if await _column_exists(db, "runtime_messages", "tool_event_type"):
+            current_version = 4
+        if current_version == 4:
+            await _cleanup_v5_legacy_placeholder_bindings(db)
+            current_version = 5
+        if current_version == 5:
+            await _cleanup_v6_legacy_placeholder_echo_capability(db)
+            current_version = 6
         await set_schema_version(db, current_version)
 
     for i in range(current_version, SCHEMA_VERSION):
@@ -173,6 +245,12 @@ async def run_migrations():
             logger.info(f"Applying migration v{i} -> v{i + 1}")
             if i == 2:
                 await _ensure_v3_capability_fields(db)
+            elif i == 3:
+                await _ensure_v4_runtime_message_fields(db)
+            elif i == 4:
+                await _cleanup_v5_legacy_placeholder_bindings(db)
+            elif i == 5:
+                await _cleanup_v6_legacy_placeholder_echo_capability(db)
             else:
                 await db.executescript(MIGRATIONS[migration_idx])
             await set_schema_version(db, i + 1)

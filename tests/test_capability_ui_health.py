@@ -117,7 +117,11 @@ def test_capability_detail_page_shows_test_and_health_sections(tmp_path):
         html = response.text
         assert "Schema Status" in html
         assert "Latest Test" in html
-        assert "Health History" in html
+        assert "Health Check" in html
+        assert "Health History" not in html
+        assert "setTimeout(() => location.reload()" not in html
+        assert "id=\"health-check-btn\"" in html
+        assert "id=\"run-test-btn\"" in html
     finally:
         asyncio.run(db_module.close_db())
         db_module.settings.app_db_path = original_path

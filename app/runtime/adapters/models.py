@@ -16,12 +16,12 @@ async def get_chat_model(
 ) -> object:
     """Get a chat model instance, resolving config from DB -> .env."""
     repo = LLMConfigRepo()
-    # Default model from .env settings
-    model_key = f"openai:{settings.openai_model}"
+    model_key = await _resolve_default_model_key(repo)
     temperature = 0.7
+    has_explicit_model_key = bool((model_key_override or "").strip())
 
-    if model_key_override:
-        model_key = model_key_override
+    if has_explicit_model_key:
+        model_key = (model_key_override or "").strip()
 
     if binding_id:
         bind_repo = BindingRepo()
@@ -41,7 +41,7 @@ async def get_chat_model(
     if db_config:
         api_key = db_config.get("api_key")
         base_url = db_config.get("base_url")
-        if db_config.get("default_model") and not binding_id:
+        if db_config.get("default_model") and not binding_id and not has_explicit_model_key:
             model_name = db_config["default_model"]
 
     # Fallback to .env
@@ -98,3 +98,15 @@ def _normalize_base_url(provider: str, base_url: str | None) -> str | None:
     if normalized.endswith("/v1"):
         return normalized
     return f"{normalized}/v1"
+
+
+async def _resolve_default_model_key(repo: LLMConfigRepo) -> str:
+    cfg = await repo.get_default()
+    if cfg:
+        provider = str(cfg.get("provider") or "openai").strip() or "openai"
+        default_model = str(cfg.get("default_model") or "").strip()
+        if default_model:
+            return f"{provider}:{default_model}"
+
+    openai_model = (settings.openai_model or "").strip() or "gpt-4.1"
+    return f"openai:{openai_model}"

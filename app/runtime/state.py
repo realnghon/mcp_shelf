@@ -8,6 +8,7 @@ class AgentState(TypedDict):
     model_key: str | None
     messages: list[dict[str, Any]]
     selected_capabilities: list[dict[str, Any]]
+    ad_hoc_capabilities: list[dict[str, Any]]
     available_tools: list[Any]
     max_steps: int
     current_step: int

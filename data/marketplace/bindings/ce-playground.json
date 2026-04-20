@@ -1,6 +1,6 @@
 {
   "name": "CE Playground",
-  "description": "Playground binding with default calculator tool and CE brainstorm skill template.",
+  "description": "Playground binding with default calculator tool.",
   "model_key": "openai:gpt-4.1",
   "system_prompt": "You are an implementation assistant. Use calculator for arithmetic and skill_ce_brainstorm for requirements clarification.",
   "max_steps": 8,
@@ -9,11 +9,6 @@
   "capabilities": [
     {
       "slug": "calculator",
-      "is_enabled": true,
-      "runtime_overrides": {}
-    },
-    {
-      "slug": "ce-brainstorm-skill",
       "is_enabled": true,
       "runtime_overrides": {}
     }

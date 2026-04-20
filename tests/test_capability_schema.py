@@ -168,7 +168,7 @@ async def test_run_migrations_upgrades_legacy_database_without_meta(tmp_path):
         cursor = await db.execute("SELECT value FROM _meta WHERE key = 'schema_version'")
         row = await cursor.fetchone()
         assert row is not None
-        assert row[0] == "3"
+        assert row[0] == "6"
     finally:
         await db_module.close_db()
         db_module.settings.app_db_path = original_path
@@ -228,7 +228,82 @@ async def test_run_migrations_completes_partially_upgraded_database(tmp_path):
         cursor = await db.execute("SELECT value FROM _meta WHERE key = 'schema_version'")
         row = await cursor.fetchone()
         assert row is not None
-        assert row[0] == "3"
+        assert row[0] == "6"
+    finally:
+        await db_module.close_db()
+        db_module.settings.app_db_path = original_path
+        db_module._db = None
+
+
+@pytest.mark.asyncio
+async def test_run_migrations_v6_removes_legacy_echo_tool_placeholder(tmp_path):
+    db_path = tmp_path / "legacy_echo.db"
+    async with aiosqlite.connect(db_path) as db:
+        await db.executescript(
+            """
+            CREATE TABLE capabilities (
+              id TEXT PRIMARY KEY,
+              kind TEXT NOT NULL,
+              name TEXT NOT NULL,
+              slug TEXT NOT NULL UNIQUE,
+              description TEXT,
+              category TEXT,
+              tags TEXT NOT NULL DEFAULT '[]',
+              version TEXT NOT NULL DEFAULT '0.1.0',
+              visibility TEXT NOT NULL DEFAULT 'public',
+              status TEXT NOT NULL DEFAULT 'active',
+              owner_id TEXT,
+              type TEXT NOT NULL DEFAULT 'tool',
+              source_type TEXT NOT NULL DEFAULT 'custom',
+              source_id TEXT,
+              input_schema TEXT NOT NULL DEFAULT '{}',
+              output_schema TEXT NOT NULL DEFAULT '{}',
+              config_schema TEXT NOT NULL DEFAULT '{}',
+              connection_config TEXT NOT NULL DEFAULT '{}',
+              schema_status TEXT,
+              last_test_status TEXT,
+              last_tested_at TEXT,
+              last_latency_ms INTEGER,
+              metadata TEXT NOT NULL DEFAULT '{}',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE _meta (
+              key TEXT PRIMARY KEY,
+              value TEXT NOT NULL
+            );
+            INSERT INTO _meta (key, value) VALUES ('schema_version', '5');
+            INSERT INTO capabilities (
+              id, kind, name, slug, description, category, tags, version, visibility, status,
+              owner_id, type, source_type, source_id, input_schema, output_schema, config_schema,
+              connection_config, schema_status, last_test_status, last_tested_at, last_latency_ms,
+              metadata, created_at, updated_at
+            ) VALUES (
+              'cap_echo_1', 'tool', 'Echo Tool', 'echo-tool', 'Simple echo tool', 'utility', '[]',
+              '0.1.0', 'public', 'active', NULL, 'tool', 'custom', NULL, '{}', '{}', '{}', '{}',
+              NULL, NULL, NULL, NULL, '{}', '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00'
+            );
+            """
+        )
+        await db.commit()
+
+    original_path = db_module.settings.app_db_path
+    db_module._db = None
+    db_module.settings.app_db_path = str(db_path)
+
+    try:
+        await run_migrations()
+        db = await db_module.get_db()
+
+        cursor = await db.execute("SELECT value FROM _meta WHERE key = 'schema_version'")
+        row = await cursor.fetchone()
+        assert row is not None
+        assert row[0] == "6"
+
+        cursor = await db.execute("SELECT COUNT(*) FROM capabilities WHERE slug = 'echo-tool'")
+        count_row = await cursor.fetchone()
+        assert count_row is not None
+        assert int(count_row[0]) == 0
     finally:
         await db_module.close_db()
         db_module.settings.app_db_path = original_path

@@ -14,6 +14,7 @@ def ensure_data_dirs():
         settings.data_dir / "icons",
         settings.data_dir / "seeds",
         settings.data_dir / "memory",
+        settings.data_dir / "skills",
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)

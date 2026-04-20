@@ -24,28 +24,38 @@ async def get_mcp_tools(connection_config: dict[str, Any]) -> list[Any]:
     if not server_cfg:
         return []
 
-    endpoint_url = str(connection_config.get("endpoint_url", ""))
+    endpoint_url = _extract_endpoint_url(connection_config)
     command = str(connection_config.get("command", ""))
 
     tools = []
+    candidates = [transport]
+    if transport == "streamable_http":
+        candidates.append("sse")
+    elif transport == "sse":
+        candidates.append("streamable_http")
 
     try:
         from langchain_mcp_adapters.client import MultiServerMCPClient
 
-        server_config = {"mcp-server": server_cfg}
-
-        client = MultiServerMCPClient(server_config)  # type: ignore[arg-type]
-        try:
-            mcp_tools = client.get_tools()
-            if inspect.isawaitable(mcp_tools):
-                mcp_tools = await mcp_tools
-            tools = list(mcp_tools or [])
-        finally:
-            close_fn = getattr(client, "aclose", None)
-            if callable(close_fn):
-                close_result = close_fn()
-                if inspect.isawaitable(close_result):
-                    await close_result
+        for candidate_transport in candidates:
+            candidate_cfg = _build_server_config(connection_config, candidate_transport)
+            if not candidate_cfg:
+                continue
+            server_config = {"mcp-server": candidate_cfg}
+            client = MultiServerMCPClient(server_config)  # type: ignore[arg-type]
+            try:
+                mcp_tools = client.get_tools()
+                if inspect.isawaitable(mcp_tools):
+                    mcp_tools = await mcp_tools
+                tools = list(mcp_tools or [])
+                if tools:
+                    break
+            finally:
+                close_fn = getattr(client, "aclose", None)
+                if callable(close_fn):
+                    close_result = close_fn()
+                    if inspect.isawaitable(close_result):
+                        await close_result
 
     except ImportError:
         import logging
@@ -66,7 +76,10 @@ async def get_mcp_tools(connection_config: dict[str, Any]) -> list[Any]:
 def clear_mcp_cache(endpoint_url: str | None = None):
     """Clear MCP tool cache."""
     if endpoint_url:
-        _mcp_tool_cache.pop(endpoint_url, None)
+        prefix = str(endpoint_url).strip()
+        stale_keys = [key for key in _mcp_tool_cache if prefix and prefix in key]
+        for key in stale_keys:
+            _mcp_tool_cache.pop(key, None)
     else:
         _mcp_tool_cache.clear()
 
@@ -103,7 +116,7 @@ def _build_server_config(connection_config: dict[str, Any], transport: str) -> d
             cfg["cwd"] = cwd
         return cfg
 
-    endpoint_url = str(connection_config.get("endpoint_url", "")).strip()
+    endpoint_url = _extract_endpoint_url(connection_config)
     if not endpoint_url:
         return None
     cfg = {
@@ -111,8 +124,13 @@ def _build_server_config(connection_config: dict[str, Any], transport: str) -> d
         "url": endpoint_url,
     }
     headers = connection_config.get("headers_template", {})
+    if not headers:
+        headers = connection_config.get("headers", {})
     if isinstance(headers, dict) and headers:
         cfg["headers"] = headers
+    timeout_s = connection_config.get("timeout_s")
+    if isinstance(timeout_s, (int, float)) and timeout_s > 0:
+        cfg["timeout"] = float(timeout_s)
     return cfg
 
 
@@ -122,6 +140,16 @@ def _build_cache_key(connection_config: dict[str, Any], transport: str) -> str:
         args = connection_config.get("args", [])
         env = connection_config.get("env", {})
         return f"stdio:{command}:{json.dumps(args, sort_keys=True)}:{json.dumps(env, sort_keys=True)}"
-    endpoint_url = str(connection_config.get("endpoint_url", "")).strip()
+    endpoint_url = _extract_endpoint_url(connection_config)
     headers = connection_config.get("headers_template", {})
+    if not headers:
+        headers = connection_config.get("headers", {})
     return f"{transport}:{endpoint_url}:{json.dumps(headers, sort_keys=True)}"
+
+
+def _extract_endpoint_url(connection_config: dict[str, Any]) -> str:
+    return str(
+        connection_config.get("endpoint_url")
+        or connection_config.get("url")
+        or ""
+    ).strip()

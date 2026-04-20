@@ -26,8 +26,8 @@
         <button class="btn btn-success btn-sm" onclick="toggleStatus(true)">Activate</button>
         {% endif %}
         {% endif %}
-        <button class="btn btn-outline btn-sm" onclick="healthCheck()">Health Check</button>
-        <button class="btn btn-outline btn-sm" onclick="runTest()">Run Test</button>
+        <button id="health-check-btn" class="btn btn-outline btn-sm" onclick="healthCheck(this)">Health Check</button>
+        <button id="run-test-btn" class="btn btn-outline btn-sm" onclick="runTest(this)">Run Test</button>
         {% if not capability.is_builtin %}
         <a href="/api/export/capability/{{ capability.id }}" class="btn btn-outline btn-sm">Export JSON</a>
         {% endif %}
@@ -88,9 +88,9 @@
 {% endif %}</textarea>
             </div>
             <table>
-                <tr><th>Status</th><td>{{ capability.last_test_status or 'not_run' }}</td></tr>
-                <tr><th>Tested At</th><td>{{ capability.last_tested_at or '-' }}</td></tr>
-                <tr><th>Latency</th><td>{% if capability.last_latency_ms is not none %}{{ capability.last_latency_ms }} ms{% else %}-{% endif %}</td></tr>
+                <tr><th>Status</th><td id="latest-test-status">{{ capability.last_test_status or 'not_run' }}</td></tr>
+                <tr><th>Tested At</th><td id="latest-test-tested-at">{{ capability.last_tested_at or '-' }}</td></tr>
+                <tr><th>Latency</th><td id="latest-test-latency">{% if capability.last_latency_ms is not none %}{{ capability.last_latency_ms }} ms{% else %}-{% endif %}</td></tr>
             </table>
             <pre id="test-action-result" class="mt-1" style="white-space:pre-wrap;"></pre>
         </div>
@@ -106,27 +106,6 @@
             <h3>Health Check</h3>
             <p class="text-dim text-sm">Click "Health Check" to test connectivity</p>
             <pre id="health-action-result" class="mt-1" style="white-space:pre-wrap;"></pre>
-        </div>
-
-        <div class="card">
-            <h3>Health History</h3>
-            {% if health_history %}
-            <table>
-                <thead><tr><th>Status</th><th>Discovery</th><th>Detail</th><th>Checked</th></tr></thead>
-                <tbody>
-                {% for item in health_history %}
-                    <tr>
-                        <td>{{ item.status }}</td>
-                        <td>{{ item.discovery_status or '-' }}</td>
-                        <td>{{ item.detail or '-' }}</td>
-                        <td>{{ item.checked_at }}</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p class="text-dim text-sm">No health checks recorded yet.</p>
-            {% endif %}
         </div>
     </div>
 </div>
@@ -181,17 +160,46 @@ async function toggleStatus(activate) {
     alert(err.detail || JSON.stringify(err));
 }
 
-async function healthCheck() {
-    const capId = "{{ capability.id }}";
-    const resp = await fetch(`/api/capabilities/${capId}/healthcheck`, {method: 'POST'});
-    const payload = await resp.json();
-    document.getElementById('health-action-result').textContent = JSON.stringify(payload, null, 2);
-    if (resp.ok) {
-        setTimeout(() => location.reload(), 400);
+function setActionResult(id, payload, ok) {
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.style.color = ok ? 'var(--success)' : 'var(--error)';
+    target.textContent = JSON.stringify(payload, null, 2);
+}
+
+function setButtonLoading(button, loading, loadingText, idleText) {
+    if (!button) return;
+    button.disabled = loading;
+    button.textContent = loading ? loadingText : idleText;
+}
+
+function updateLatestTestSummary(payload) {
+    const statusEl = document.getElementById('latest-test-status');
+    const testedAtEl = document.getElementById('latest-test-tested-at');
+    const latencyEl = document.getElementById('latest-test-latency');
+    if (statusEl && payload.status) statusEl.textContent = payload.status;
+    if (testedAtEl && payload.tested_at) testedAtEl.textContent = payload.tested_at;
+    if (latencyEl) {
+        const latency = payload.latency_ms;
+        latencyEl.textContent = (latency === null || latency === undefined) ? '-' : `${latency} ms`;
     }
 }
 
-async function runTest() {
+async function healthCheck(button) {
+    const capId = "{{ capability.id }}";
+    setButtonLoading(button, true, 'Checking...', 'Health Check');
+    try {
+        const resp = await fetch(`/api/capabilities/${capId}/healthcheck`, {method: 'POST'});
+        const payload = await resp.json();
+        setActionResult('health-action-result', payload, resp.ok);
+    } catch (e) {
+        setActionResult('health-action-result', {detail: e.message || String(e)}, false);
+    } finally {
+        setButtonLoading(button, false, 'Checking...', 'Health Check');
+    }
+}
+
+async function runTest(button) {
     const capId = "{{ capability.id }}";
     let requestPayload = {};
     try {
@@ -200,15 +208,20 @@ async function runTest() {
         alert('Invalid JSON payload: ' + e.message);
         return;
     }
-    const resp = await fetch(`/api/capabilities/${capId}/test`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({request_payload: requestPayload}),
-    });
-    const payload = await resp.json();
-    document.getElementById('test-action-result').textContent = JSON.stringify(payload, null, 2);
-    if (resp.ok) {
-        setTimeout(() => location.reload(), 400);
+    setButtonLoading(button, true, 'Testing...', 'Run Test');
+    try {
+        const resp = await fetch(`/api/capabilities/${capId}/test`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({request_payload: requestPayload}),
+        });
+        const payload = await resp.json();
+        setActionResult('test-action-result', payload, resp.ok);
+        if (resp.ok) updateLatestTestSummary(payload);
+    } catch (e) {
+        setActionResult('test-action-result', {detail: e.message || String(e)}, false);
+    } finally {
+        setButtonLoading(button, false, 'Testing...', 'Run Test');
     }
 }
 </script>

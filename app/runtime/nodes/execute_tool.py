@@ -49,6 +49,7 @@ async def execute_tool_node(state: AgentState) -> dict:
             new_messages.append({
                 "role": "tool",
                 "content": f"Tool '{tool_name}' not found",
+                "tool_event_type": "error",
                 "tool_call_id": tool_call_id,
                 "tool_name": tool_name,
                 "tool_result": f"Error: Tool '{tool_name}' not found",
@@ -80,6 +81,7 @@ async def execute_tool_node(state: AgentState) -> dict:
             new_messages.append({
                 "role": "tool",
                 "content": result_str,
+                "tool_event_type": "result",
                 "tool_call_id": tool_call_id,
                 "tool_name": tool_name,
                 "tool_args": str(tool_args),
@@ -92,6 +94,7 @@ async def execute_tool_node(state: AgentState) -> dict:
             new_messages.append({
                 "role": "tool",
                 "content": error_msg,
+                "tool_event_type": "error",
                 "tool_call_id": tool_call_id,
                 "tool_name": tool_name,
                 "tool_result": error_msg,

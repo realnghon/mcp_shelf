@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+    {% set app_root = request.scope.get('root_path', '') %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}MCP Shelf{% endblock %}</title>
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="shortcut icon" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="{{ app_root }}/static/favicon.svg">
+    <link rel="shortcut icon" href="{{ app_root }}/static/favicon.svg">
+    <link rel="stylesheet" href="{{ app_root }}/static/css/style.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
         /* ── Dark theme (default) ── */
@@ -331,17 +332,16 @@
 </head>
 <body>
     <nav>
-        <a href="/" class="brand">
+        <a href="{{ app_root }}/" class="brand">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
             MCP Shelf
         </a>
         <div class="nav-links">
-            <a href="/capabilities" class="nav-link{% if request.url.path.startswith('/capabilities') %} active{% endif %}">MCP</a>
-            <a href="/bindings" class="nav-link{% if request.url.path.startswith('/bindings') %} active{% endif %}">Bindings</a>
-            <a href="/ops" class="nav-link{% if request.url.path.startswith('/ops') %} active{% endif %}">Ops</a>
-            <a href="/settings" class="nav-link{% if request.url.path.startswith('/settings') %} active{% endif %}">Settings</a>
+            <a href="{{ app_root }}/capabilities" class="nav-link{% if request.url.path.startswith('/capabilities') %} active{% endif %}">MCP</a>
+            <a href="{{ app_root }}/bindings" class="nav-link{% if request.url.path.startswith('/bindings') %} active{% endif %}">Bindings</a>
+            <a href="{{ app_root }}/settings" class="nav-link{% if request.url.path.startswith('/settings') %} active{% endif %}">Settings</a>
         </div>
         <div class="nav-right">
             <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
@@ -359,8 +359,69 @@
     </main>
 
     <script>
+    window.__MCP_SHELF_ROOT_PATH__ = "{{ app_root }}";
+
+    function appPath(path) {
+        const root = window.__MCP_SHELF_ROOT_PATH__ || '';
+        if (!path) {
+            return root || '/';
+        }
+        if (typeof path !== 'string') {
+            return path;
+        }
+        if (/^https?:\/\//i.test(path) || path.startsWith('//')) {
+            return path;
+        }
+        if (!root) {
+            return path;
+        }
+        if (path === root || path.startsWith(root + '/')) {
+            return path;
+        }
+        if (path.startsWith('/')) {
+            return root + path;
+        }
+        return root + '/' + path;
+    }
+    window.appPath = appPath;
+
+    (function patchNetworkingForRootPath() {
+        const rawFetch = window.fetch.bind(window);
+        window.fetch = function(input, init) {
+            if (typeof input === 'string') {
+                return rawFetch(appPath(input), init);
+            }
+            return rawFetch(input, init);
+        };
+
+        const NativeEventSource = window.EventSource;
+        function PatchedEventSource(url, config) {
+            return new NativeEventSource(appPath(url), config);
+        }
+        PatchedEventSource.prototype = NativeEventSource.prototype;
+        PatchedEventSource.CONNECTING = NativeEventSource.CONNECTING;
+        PatchedEventSource.OPEN = NativeEventSource.OPEN;
+        PatchedEventSource.CLOSED = NativeEventSource.CLOSED;
+        window.EventSource = PatchedEventSource;
+    })();
+
+    function normalizeRootRelativeLinks() {
+        const attrs = ['href', 'action', 'hx-get', 'hx-post', 'hx-put', 'hx-delete', 'hx-patch'];
+        const selector = attrs.map((attr) => `[${attr}^="/"]`).join(',');
+        document.querySelectorAll(selector).forEach((el) => {
+            for (const attr of attrs) {
+                const val = el.getAttribute(attr);
+                if (!val || !val.startsWith('/') || val.startsWith('//')) {
+                    continue;
+                }
+                el.setAttribute(attr, appPath(val));
+            }
+        });
+    }
+
     // Theme management
     (function() {
+        normalizeRootRelativeLinks();
         const saved = localStorage.getItem('mcp-shelf-theme');
         if (saved) {
             document.documentElement.setAttribute('data-theme', saved);
